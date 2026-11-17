@@ -1,0 +1,151 @@
+// Модель данных приложения (слой данных).
+// Соответствует структурам из раздела 3.1 пояснительной записки.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Перечисления
+// ---------------------------------------------------------------------------
+
+enum Role {
+  GUEST
+  USER
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  OPEN
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  READY
+  ERROR
+}
+
+// ---------------------------------------------------------------------------
+// Модели
+// ---------------------------------------------------------------------------
+
+/// Учётная запись пользователя (структура User)
+model User {
+  id           String   @id @default(uuid())
+  username     String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+
+  materials     Material[]
+  tests         Test[]
+  results       TestResult[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+/// Учебный материал, на основе которого генерируется тест (структура Material)
+model Material {
+  id        String           @id @default(uuid())
+  ownerId   String
+  title     String
+  content   String?          @db.Text
+  fileUrl   String?
+  fileType  String?
+  status    ProcessingStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@map("materials")
+}
+
+/// Сгенерированный тест (структура Test)
+model Test {
+  id          String           @id @default(uuid())
+  ownerId     String
+  title       String
+  category    String?
+  description String?          @db.Text
+  status      ProcessingStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  owner     User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  questions Question[]
+  results   TestResult[]
+
+  @@index([ownerId])
+  @@map("tests")
+}
+
+/// Вопрос теста (структура Question)
+model Question {
+  id          String       @id @default(uuid())
+  testId      String
+  type        QuestionType
+  text        String       @db.Text
+  difficulty  String?
+  explanation String?      @db.Text
+  order       Int          @default(0)
+
+  test    Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  options AnswerOption[]
+
+  @@index([testId])
+  @@map("questions")
+}
+
+/// Вариант ответа на вопрос (структура AnswerOption)
+model AnswerOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String  @db.Text
+  isCorrect  Boolean @default(false)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("answer_options")
+}
+
+/// Результат прохождения теста (структура TestResult)
+model TestResult {
+  id             String   @id @default(uuid())
+  testId         String
+  userId         String
+  score          Int
+  percentCorrect Float
+  completedAt    DateTime @default(now())
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([userId])
+  @@map("test_results")
+}
+
+/// Системное уведомление (структура Notification)
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}

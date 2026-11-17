@@ -1,0 +1,4 @@
+// Use cases (сценарии) будут добавляться на последующих этапах:
+//   auth/register-user.ts, auth/login-user.ts
+//   tests/create-test.ts, tests/list-tests.ts, tests/delete-test.ts
+//   generation/generate-test.ts
