@@ -2,7 +2,7 @@
 // Паттерн singleton нужен, чтобы не создавать новый пул соединений
 // при каждом hot-reload в режиме разработки.
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

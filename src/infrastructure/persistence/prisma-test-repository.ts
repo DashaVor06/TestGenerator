@@ -1,6 +1,6 @@
 // Реализация порта TestRepository на Prisma (инфраструктура).
 
-import type { Prisma, Test as PrismaTest } from "@prisma/client";
+import type { Prisma, Test as PrismaTest } from "@/generated/prisma";
 import { prisma } from "./prisma";
 import type {
   CreateTestInput,

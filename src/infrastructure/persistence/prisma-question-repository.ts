@@ -3,7 +3,7 @@
 import type {
   AnswerOption as PrismaAnswerOption,
   Question as PrismaQuestion,
-} from "@prisma/client";
+} from "@/generated/prisma";
 import { prisma } from "./prisma";
 import type { QuestionRepository, QuestionWithOptions } from "@/application/ports";
 import type { AnswerOption, Question } from "@/domain/entities";

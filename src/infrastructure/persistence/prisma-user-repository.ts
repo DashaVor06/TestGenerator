@@ -1,6 +1,6 @@
 // Реализация порта UserRepository на Prisma (инфраструктура).
 
-import type { User as PrismaUser } from "@prisma/client";
+import type { User as PrismaUser } from "@/generated/prisma";
 import { prisma } from "./prisma";
 import type { CreateUserInput, UserRepository } from "@/application/ports";
 import type { User } from "@/domain/entities";

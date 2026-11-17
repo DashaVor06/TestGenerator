@@ -35,3 +35,6 @@ pnpm-debug.log*
 
 # prisma
 /prisma/*.db
+
+# generated prisma client
+/src/generated
