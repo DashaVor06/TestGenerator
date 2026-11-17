@@ -5,7 +5,7 @@ import type {
   Question as PrismaQuestion,
 } from "@/generated/prisma";
 import { prisma } from "./prisma";
-import type { QuestionRepository, QuestionWithOptions } from "@/application/ports";
+import type { CreateQuestionInput, QuestionRepository, QuestionWithOptions } from "@/application/ports";
 import type { AnswerOption, Question } from "@/domain/entities";
 
 export class PrismaQuestionRepository implements QuestionRepository {
@@ -48,6 +48,27 @@ export class PrismaQuestionRepository implements QuestionRepository {
       ...this.mapQuestion(q),
       options: q.options.map((o) => this.mapOption(o)),
     }));
+  }
+
+  async createMany(testId: string, questions: CreateQuestionInput[]): Promise<void> {
+    for (const question of questions) {
+      await prisma.question.create({
+        data: {
+          testId,
+          type: question.type,
+          text: question.text,
+          difficulty: question.difficulty ?? null,
+          explanation: question.explanation ?? null,
+          order: question.order,
+          options: {
+            create: question.options.map((option) => ({
+              text: option.text,
+              isCorrect: option.isCorrect,
+            })),
+          },
+        },
+      });
+    }
   }
 
   async deleteByTest(testId: string): Promise<void> {

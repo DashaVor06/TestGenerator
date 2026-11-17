@@ -7,6 +7,7 @@ import type {
   Notification,
   ProcessingStatus,
   Question,
+  QuestionType,
   Test,
   TestResult,
   User,
@@ -86,9 +87,24 @@ export interface TestWithQuestions extends Test {
   questions: QuestionWithOptions[];
 }
 
+export interface CreateQuestionOptionInput {
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface CreateQuestionInput {
+  type: QuestionType;
+  text: string;
+  difficulty: string | null;
+  explanation: string | null;
+  order: number;
+  options: CreateQuestionOptionInput[];
+}
+
 export interface QuestionRepository {
   listByTest(testId: string): Promise<Question[]>;
   listByTestWithOptions(testId: string): Promise<QuestionWithOptions[]>;
+  createMany(testId: string, questions: CreateQuestionInput[]): Promise<void>;
   deleteByTest(testId: string): Promise<void>;
 }
 

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AppProvider } from "@/components/providers";
+import { Header } from "@/components/header";
+import { Toast } from "@/components/toast";
 
 export const metadata: Metadata = {
   title: "Генератор тестов",
@@ -13,7 +16,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body>
+        <AppProvider>
+          <Header />
+          <main className="container">{children}</main>
+          <Toast />
+        </AppProvider>
+      </body>
     </html>
   );
 }
