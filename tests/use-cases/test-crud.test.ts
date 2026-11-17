@@ -66,6 +66,7 @@ function makeQuestionRepo(questions: QuestionWithOptions[] = []): QuestionReposi
     listByTestWithOptions: vi.fn(async (testId: string) =>
       questions.filter((q) => q.testId === testId)
     ),
+    createMany: vi.fn(async () => {}),
     deleteByTest: vi.fn(async () => {}),
   };
 }
