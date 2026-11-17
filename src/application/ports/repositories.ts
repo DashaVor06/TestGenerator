@@ -2,6 +2,7 @@
 // Объявляются здесь (application), реализуются в infrastructure/persistence.
 
 import type {
+  AnswerOption,
   Material,
   Notification,
   ProcessingStatus,
@@ -77,8 +78,17 @@ export interface TestRepository {
 
 // --- Вопросы --------------------------------------------------------------
 
+export interface QuestionWithOptions extends Question {
+  options: AnswerOption[];
+}
+
+export interface TestWithQuestions extends Test {
+  questions: QuestionWithOptions[];
+}
+
 export interface QuestionRepository {
   listByTest(testId: string): Promise<Question[]>;
+  listByTestWithOptions(testId: string): Promise<QuestionWithOptions[]>;
   deleteByTest(testId: string): Promise<void>;
 }
 

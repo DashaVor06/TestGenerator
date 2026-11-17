@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import {
   ConflictError,
   DomainError,
+  ForbiddenError,
   NotFoundError,
   UnauthorizedError,
   ValidationError,
@@ -28,6 +29,9 @@ export function unauthorized(message = "Не авторизован"): NextRespo
 export function handleError(error: unknown): NextResponse {
   if (error instanceof UnauthorizedError) {
     return NextResponse.json({ error: error.message }, { status: 401 });
+  }
+  if (error instanceof ForbiddenError) {
+    return NextResponse.json({ error: error.message }, { status: 403 });
   }
   if (error instanceof NotFoundError) {
     return NextResponse.json({ error: error.message }, { status: 404 });

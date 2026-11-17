@@ -37,3 +37,11 @@ export class UnauthorizedError extends DomainError {
     this.name = "UnauthorizedError";
   }
 }
+
+/** Пользователь авторизован, но не имеет прав на действие. */
+export class ForbiddenError extends DomainError {
+  constructor(message = "Доступ запрещён") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
