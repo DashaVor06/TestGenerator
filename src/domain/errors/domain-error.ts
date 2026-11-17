@@ -22,6 +22,14 @@ export class ValidationError extends DomainError {
   }
 }
 
+/** Конфликт: ресурс уже существует. */
+export class ConflictError extends DomainError {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
 /** Недостаточно прав для выполнения операции. */
 export class UnauthorizedError extends DomainError {
   constructor(message = "Доступ запрещён") {
