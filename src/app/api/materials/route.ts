@@ -5,6 +5,7 @@ import { createMaterialSchema } from "@/application/validation/material";
 import { createMaterial } from "@/application/use-cases/materials/create-material";
 import { listMaterials } from "@/application/use-cases/materials/list-materials";
 import { materialRepository } from "@/infrastructure/persistence/prisma-material-repository";
+import { extractDocxText, extractPdfText } from "@/infrastructure/external/text-extraction";
 import { getCurrentUser } from "@/app/api/_lib/auth";
 import {
   badRequest,
@@ -57,7 +58,22 @@ export async function POST(request: NextRequest) {
         return badRequest("Файл слишком большой (максимум 5 МБ)");
       }
 
-      const content = ext === "txt" ? await file.text() : "";
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      let content = "";
+      try {
+        if (ext === "txt") {
+          content = await file.text();
+        } else if (ext === "pdf") {
+          content = await extractPdfText(buffer);
+        } else if (ext === "docx") {
+          content = await extractDocxText(buffer);
+        }
+      } catch {
+        return badRequest("Не удалось извлечь текст из файла");
+      }
+
       const material = await createMaterial(
         user.id,
         {
