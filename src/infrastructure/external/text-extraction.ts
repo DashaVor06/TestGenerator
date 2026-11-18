@@ -5,7 +5,7 @@ import mammoth from "mammoth";
 
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   const { text } = await extractText(buffer);
-  return text ?? "";
+  return Array.isArray(text) ? text.join("\n\n") : text;
 }
 
 export async function extractDocxText(buffer: Buffer): Promise<string> {
