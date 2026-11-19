@@ -182,9 +182,6 @@ export async function generateTest(
   });
 
   try {
-    // Старые вопросы удаляем, чтобы повторная генерация не создавала дубли.
-    await deps.questions.deleteByTest(testId);
-
     const generated: CreateQuestionInput[] = [];
     let costUsd = 0;
     let basicGenerated = 0;
@@ -255,6 +252,9 @@ export async function generateTest(
       order: index + 1,
     }));
 
+    // Старые вопросы заменяем только после успешной генерации:
+    // если ИИ вернул ошибку, прежние вопросы остаются на месте.
+    await deps.questions.deleteByTest(testId);
     await deps.questions.createMany(testId, withOrder);
 
     const settings: TestSettings = {
