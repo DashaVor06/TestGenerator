@@ -58,6 +58,13 @@ export default function TestPage() {
     return data.test;
   }, [testId]);
 
+  /** Перечитывает список материалов — нужен после загрузки нового. */
+  const reloadMaterials = useCallback(() => {
+    api<{ materials: Material[] }>("/api/materials")
+      .then((data) => setMaterials(data.materials))
+      .catch(() => setMaterials([]));
+  }, []);
+
   // Первая загрузка теста и списка материалов.
   useEffect(() => {
     if (!user) {
@@ -66,10 +73,8 @@ export default function TestPage() {
     void load().catch((err: unknown) => {
       setError(err instanceof Error ? err.message : t("common.error"));
     });
-    api<{ materials: Material[] }>("/api/materials")
-      .then((data) => setMaterials(data.materials))
-      .catch(() => setMaterials([]));
-  }, [user, load, t]);
+    reloadMaterials();
+  }, [user, load, reloadMaterials, t]);
 
   // Ссылка для прохождения (origin нужен только на клиенте) и таймер подсказки.
   useEffect(() => {
@@ -360,6 +365,7 @@ export default function TestPage() {
         lastResult={finished}
         initialMaterialId={test.materialId ?? undefined}
         onGenerate={handleGenerate}
+        onMaterialsChanged={reloadMaterials}
       />
 
       {/* 3. Доступ к тесту */}

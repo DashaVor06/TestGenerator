@@ -7,6 +7,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/providers";
 import { estimateGenerationCost, formatByn, formatUsd } from "@/domain/pricing";
+import { MaterialForm, type CreatedMaterial } from "./material-form";
 import {
   clamp,
   DIFFICULTIES,
@@ -42,6 +43,8 @@ interface GenerationCardProps {
   onGenerate: (params: GenerationParams) => void;
   /** Материал прошлой генерации — подставляем в список сразу. */
   initialMaterialId?: string;
+  /** Сообщает странице, что список материалов нужно перечитать. */
+  onMaterialsChanged?: () => void;
 }
 
 export function GenerationCard({
@@ -51,10 +54,12 @@ export function GenerationCard({
   lastResult,
   onGenerate,
   initialMaterialId,
+  onMaterialsChanged,
 }: GenerationCardProps) {
   const { t } = useApp();
 
   const [materialId, setMaterialId] = useState(initialMaterialId ?? "");
+  const [addingMaterial, setAddingMaterial] = useState(false);
   const [typeCounts, setTypeCounts] = useState<Record<QuestionType, number>>({
     SINGLE_CHOICE: 5,
     MULTIPLE_CHOICE: 0,
@@ -103,6 +108,13 @@ export function GenerationCard({
     });
   }
 
+  /** Новый материал: выбираем его и просим страницу перечитать список. */
+  function handleMaterialCreated(material: CreatedMaterial) {
+    setMaterialId(material.id);
+    setAddingMaterial(false);
+    onMaterialsChanged?.();
+  }
+
   return (
     <section className="card">
       <div className="card__header">
@@ -110,13 +122,28 @@ export function GenerationCard({
       </div>
 
       {materials.length === 0 ? (
-        <div className="empty">
-          <p className="empty__title">{t("tests.generation.material.empty")}</p>
-          <div className="row">
-            <Link className="btn btn--primary btn--sm" href="/materials">
-              {t("nav.materials")}
-            </Link>
+        <div className="stack">
+          <div className="empty">
+            <p className="empty__title">{t("tests.generation.material.empty")}</p>
+            <div className="row">
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={() => setAddingMaterial((value) => !value)}
+              >
+                {t("materials.create")}
+              </button>
+              <Link className="btn btn--sm" href="/materials">
+                {t("nav.materials")}
+              </Link>
+            </div>
           </div>
+
+          {addingMaterial && (
+            <div className="card card--soft">
+              <MaterialForm onCreated={handleMaterialCreated} />
+            </div>
+          )}
         </div>
       ) : (
         <div className="stack">
@@ -139,6 +166,22 @@ export function GenerationCard({
             </select>
             <p className="field__hint">{t("tests.generation.material.hint")}</p>
           </div>
+
+          <div className="row">
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => setAddingMaterial((value) => !value)}
+            >
+              {addingMaterial ? t("common.cancel") : t("materials.create")}
+            </button>
+          </div>
+
+          {addingMaterial && (
+            <div className="card card--soft">
+              <MaterialForm onCreated={handleMaterialCreated} />
+            </div>
+          )}
 
           <div>
             <p className="field__label">{t("tests.generation.types")}</p>
