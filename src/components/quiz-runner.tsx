@@ -108,9 +108,17 @@ function usesOptions(question: AttemptQuestion): boolean {
   return question.type !== "OPEN" && question.options.length > 0;
 }
 
-/** Классы варианта в разборе: правильный — зелёный, выбранный неверный — красный,
- *  остальные варианты приглушаются, чтобы не отвлекать. */
+/**
+ * Классы варианта в разборе:
+ *  - правильный и выбранный — тёмно-серый (вы его нашли);
+ *  - правильный и не выбранный — зелёный (вы его пропустили);
+ *  - неправильный и выбранный — красный;
+ *  - остальные — светло-серые.
+ */
 function reviewOptionClass(option: ReviewOption): string {
+  if (option.isCorrect && option.selected) {
+    return "option option--correct-chosen";
+  }
   if (option.isCorrect) {
     return "option option--correct";
   }

@@ -727,6 +727,19 @@ p {
   background: transparent;
 }
 
+/* Правильный вариант, который пользователь выбрал: тёмно-серый. */
+.option--correct-chosen {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  box-shadow: inset 3px 0 0 var(--text-muted);
+}
+
+.option--correct-chosen .option__marker {
+  border-color: var(--text-muted);
+  background: var(--text-muted);
+  color: #fff;
+}
+
 .option__marker {
   width: 22px;
   height: 22px;
