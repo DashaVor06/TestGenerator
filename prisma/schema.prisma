@@ -15,22 +15,66 @@ datasource db {
 // Перечисления
 // ---------------------------------------------------------------------------
 
+/// Роль пользователя. GUEST — незарегистрированный посетитель, USER — обычный
+/// пользователь, ADMIN — администратор (зарезервировано для развития системы).
 enum Role {
   GUEST
   USER
+  ADMIN
 }
 
+/// Тип вопроса. От типа зависит способ проверки ответа.
 enum QuestionType {
-  MULTIPLE_CHOICE
-  TRUE_FALSE
-  OPEN
+  SINGLE_CHOICE // один вариант из нескольких
+  MULTIPLE_CHOICE // несколько вариантов
+  TRUE_FALSE // верно / неверно
+  SHORT_ANSWER // короткий ответ, вводится текстом
+  OPEN // развёрнутый ответ, проверяется вручную
 }
 
+/// Сложность вопроса и сложность всего теста.
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+/// Уровень мышления по таксономии Блума.
+/// REMEMBER — вспомнить факт, APPLY/ANALYZE — «вопросы на размышление».
+enum CognitiveLevel {
+  REMEMBER
+  UNDERSTAND
+  APPLY
+  ANALYZE
+}
+
+/// Статус обработки материала или теста.
 enum ProcessingStatus {
   PENDING
   PROCESSING
   READY
   ERROR
+}
+
+/// Кто может увидеть и пройти тест.
+/// PRIVATE — только автор, UNLISTED — только по ссылке, PUBLIC — есть в каталоге.
+enum Visibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+/// Откуда взят учебный материал.
+enum MaterialSource {
+  TEXT
+  FILE
+  URL
+}
+
+/// Язык интерфейса пользователя и язык генерации теста.
+enum TestLanguage {
+  RU
+  EN
 }
 
 // ---------------------------------------------------------------------------
@@ -39,17 +83,19 @@ enum ProcessingStatus {
 
 /// Учётная запись пользователя (структура User)
 model User {
-  id           String   @id @default(uuid())
+  id           String       @id @default(uuid())
   username     String
-  email        String   @unique
+  email        String       @unique
   passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
+  role         Role         @default(USER)
+  language     TestLanguage @default(RU)
+  createdAt    DateTime     @default(now())
 
   materials     Material[]
   tests         Test[]
   results       TestResult[]
   notifications Notification[]
+  generations   Generation[]
 
   @@map("users")
 }
@@ -62,10 +108,13 @@ model Material {
   content   String?          @db.Text
   fileUrl   String?
   fileType  String?
-  status    ProcessingStatus @default(PENDING)
+  source    MaterialSource   @default(TEXT)
+  sourceUrl String?
+  status    ProcessingStatus @default(READY)
   createdAt DateTime         @default(now())
 
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tests Test[]
 
   @@index([ownerId])
   @@map("materials")
@@ -75,32 +124,51 @@ model Material {
 model Test {
   id          String           @id @default(uuid())
   ownerId     String
+  materialId  String?
   title       String
   category    String?
   description String?          @db.Text
+  language    TestLanguage     @default(RU)
+  visibility  Visibility       @default(PRIVATE)
+  /// Короткая ссылка для доступа по ссылке (создаётся при публикации)
+  shareToken  String?          @unique
   status      ProcessingStatus @default(PENDING)
+  /// Параметры последней генерации (типы, сложность, количество)
+  settings    Json?
   createdAt   DateTime         @default(now())
 
-  owner     User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  questions Question[]
-  results   TestResult[]
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  material    Material?    @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  questions   Question[]
+  results     TestResult[]
+  generations Generation[]
 
   @@index([ownerId])
+  @@index([materialId])
+  @@index([visibility])
   @@map("tests")
 }
 
 /// Вопрос теста (структура Question)
 model Question {
-  id          String       @id @default(uuid())
-  testId      String
-  type        QuestionType
-  text        String       @db.Text
-  difficulty  String?
-  explanation String?      @db.Text
-  order       Int          @default(0)
+  id             String         @id @default(uuid())
+  testId         String
+  type           QuestionType
+  text           String         @db.Text
+  difficulty     Difficulty?
+  cognitiveLevel CognitiveLevel @default(REMEMBER)
+  /// Пояснение, которое показывается после прохождения
+  explanation    String?        @db.Text
+  /// Фрагмент материала, на котором основан вопрос (для разбора ошибок)
+  sourceQuote    String?        @db.Text
+  /// Эталонный ответ для вопросов типа SHORT_ANSWER
+  expectedAnswer String?        @db.Text
+  points         Int            @default(1)
+  order          Int            @default(0)
 
-  test    Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
   options AnswerOption[]
+  answers TestAnswer[]
 
   @@index([testId])
   @@map("questions")
@@ -112,6 +180,7 @@ model AnswerOption {
   questionId String
   text       String  @db.Text
   isCorrect  Boolean @default(false)
+  order      Int     @default(0)
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
@@ -123,17 +192,65 @@ model AnswerOption {
 model TestResult {
   id             String   @id @default(uuid())
   testId         String
-  userId         String
+  /// NULL, если тест проходил незарегистрированный пользователь
+  userId         String?
+  /// Имя гостя (заполняется, когда userId = NULL)
+  guestName      String?
   score          Int
+  maxScore       Int      @default(0)
   percentCorrect Float
+  durationMs     Int?
   completedAt    DateTime @default(now())
+
+  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers TestAnswer[]
+
+  @@index([testId])
+  @@index([userId])
+  @@map("test_results")
+}
+
+/// Ответ пользователя на отдельный вопрос — основа разбора ошибок
+model TestAnswer {
+  id                String   @id @default(uuid())
+  resultId          String
+  questionId        String
+  selectedOptionIds String[]
+  textAnswer        String?  @db.Text
+  isCorrect         Boolean  @default(false)
+  pointsAwarded     Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  result   TestResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  question Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([resultId])
+  @@index([questionId])
+  @@map("test_answers")
+}
+
+/// Журнал обращений к ИИ: нужен, чтобы считать расходы на генерацию
+model Generation {
+  id             String   @id @default(uuid())
+  testId         String
+  userId         String
+  model          String
+  /// Режим мышления: low / high
+  effort         String
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  costUsd        Float    @default(0)
+  durationMs     Int      @default(0)
+  questionsCount Int      @default(0)
+  createdAt      DateTime @default(now())
 
   test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([testId])
   @@index([userId])
-  @@map("test_results")
+  @@map("generations")
 }
 
 /// Системное уведомление (структура Notification)

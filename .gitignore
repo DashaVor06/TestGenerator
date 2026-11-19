@@ -38,3 +38,8 @@ pnpm-debug.log*
 
 # generated prisma client
 /src/generated
+
+# временные файлы
+/.tmp
+/.pnpm-store
+/prisma/schema.old.prisma
