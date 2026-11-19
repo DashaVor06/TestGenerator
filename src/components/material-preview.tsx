@@ -13,7 +13,7 @@ import type { CreatedMaterial } from "./material-form";
 
 /** Варианты содержимого, которые возвращает сервер. */
 type Preview =
-  | { kind: "pdf"; fileName: string | null }
+  | { kind: "pdf"; url: string; converted: boolean }
   | { kind: "html"; html: string }
   | { kind: "slides"; slides: string[] }
   | { kind: "markdown"; text: string; sourceUrl: string | null }
@@ -162,7 +162,17 @@ export function MaterialPreview({ materialId, onClose }: MaterialPreviewProps) {
           )}
 
           {!loading && !error && preview?.kind === "pdf" && (
-            <iframe className="doc-frame" src={fileUrl} title={material?.title ?? "PDF"} />
+            <iframe
+              className="doc-frame"
+              src={preview.url}
+              title={material?.title ?? "PDF"}
+            />
+          )}
+
+          {!loading && !error && (preview?.kind === "html" || preview?.kind === "slides") && (
+            <div className="alert alert--info" style={{ margin: "16px 20px 0" }}>
+              {t("materials.office.hint")}
+            </div>
           )}
 
           {!loading && !error && preview?.kind === "html" && (

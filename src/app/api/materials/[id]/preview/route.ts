@@ -14,6 +14,7 @@ import { getMaterial } from "@/application/use-cases/materials/get-material";
 import { materialRepository } from "@/infrastructure/persistence/prisma-material-repository";
 import { extractPptxSlides } from "@/infrastructure/external/text-extraction";
 import { readMaterialFile } from "@/infrastructure/storage/file-storage";
+import { getDocumentPdf } from "@/infrastructure/storage/office-converter";
 import { getCurrentUser } from "@/app/api/_lib/auth";
 import { handleError, ok, unauthorized } from "@/app/api/_lib/http";
 
@@ -69,18 +70,40 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
 
     if (extension === "pdf") {
-      return ok({ preview: { kind: "pdf", fileName: material.fileUrl }, hasFile: true });
-    }
-
-    if (extension === "docx") {
-      const result = await mammoth.convertToHtml({ buffer });
       return ok({
-        preview: { kind: "html", html: sanitizeHtml(result.value) },
+        preview: {
+          kind: "pdf",
+          url: `/api/materials/${material.id}/file`,
+          converted: false,
+        },
         hasFile: true,
       });
     }
 
-    if (extension === "pptx") {
+    // Word и PowerPoint показываем страницами: конвертируем в PDF.
+    if (extension === "docx" || extension === "pptx") {
+      const pdfPath = await getDocumentPdf(material.id, extension);
+
+      if (pdfPath) {
+        return ok({
+          preview: {
+            kind: "pdf",
+            url: `/api/materials/${material.id}/file?as=pdf`,
+            converted: true,
+          },
+          hasFile: true,
+        });
+      }
+
+      // LibreOffice не установлен — показываем хотя бы текст документа.
+      if (extension === "docx") {
+        const result = await mammoth.convertToHtml({ buffer });
+        return ok({
+          preview: { kind: "html", html: sanitizeHtml(result.value) },
+          hasFile: true,
+        });
+      }
+
       const slides = await extractPptxSlides(buffer);
       return ok({ preview: { kind: "slides", slides }, hasFile: true });
     }
