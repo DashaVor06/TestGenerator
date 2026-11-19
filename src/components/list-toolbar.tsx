@@ -55,12 +55,14 @@ function CategorySelect({
     function handleClick(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
+        // Если категорию не выбрали — возвращаем в поле текущее значение.
+        setQuery(value);
       }
     }
 
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  }, [value]);
 
   const search = query.trim().toLowerCase();
   const filtered = categories.filter((item) => item.toLowerCase().includes(search));
@@ -100,7 +102,10 @@ function CategorySelect({
       <button
         type="button"
         className="combobox__toggle"
-        onClick={() => setOpen((previous) => !previous)}
+        onClick={() => {
+          setOpen((previous) => !previous);
+          setQuery(value);
+        }}
         aria-label={t("common.allCategories")}
         tabIndex={-1}
       >
