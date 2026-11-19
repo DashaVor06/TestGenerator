@@ -1,8 +1,13 @@
 // Реализация порта MaterialRepository на Prisma (инфраструктура).
 
+import type { Prisma } from "@/generated/prisma";
 import { prisma } from "./prisma";
 import { mapMaterial } from "./mappers";
-import type { CreateMaterialInput, MaterialRepository } from "@/application/ports";
+import type {
+  CreateMaterialInput,
+  ListMaterialsParams,
+  MaterialRepository,
+} from "@/application/ports";
 import type { Material, ProcessingStatus } from "@/domain/entities";
 
 export class PrismaMaterialRepository implements MaterialRepository {
@@ -11,11 +16,23 @@ export class PrismaMaterialRepository implements MaterialRepository {
     return material ? mapMaterial(material) : null;
   }
 
-  async listByOwner(ownerId: string): Promise<Material[]> {
-    const materials = await prisma.material.findMany({
-      where: { ownerId },
-      orderBy: { createdAt: "desc" },
-    });
+  /** Список материалов пользователя с поиском по названию и сортировкой. */
+  async listByOwner(
+    ownerId: string,
+    params: ListMaterialsParams = {}
+  ): Promise<Material[]> {
+    const where: Prisma.MaterialWhereInput = { ownerId };
+
+    if (params.search) {
+      where.title = { contains: params.search, mode: "insensitive" };
+    }
+
+    const orderBy: Prisma.MaterialOrderByWithRelationInput =
+      params.sortBy === "title"
+        ? { title: params.sortOrder ?? "asc" }
+        : { createdAt: params.sortOrder ?? "desc" };
+
+    const materials = await prisma.material.findMany({ where, orderBy });
     return materials.map(mapMaterial);
   }
 

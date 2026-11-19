@@ -17,6 +17,9 @@ interface Material extends CreatedMaterial {
 /** Сколько символов показываем в карточке до открытия полного текста. */
 const PREVIEW_LENGTH = 160;
 
+/** Пауза перед запросом, чтобы не искать на каждую введённую букву. */
+const SEARCH_DELAY_MS = 300;
+
 /** Ключи словаря и классы значков для источника материала. */
 const SOURCE_KEYS = {
   TEXT: "materials.source.TEXT",
@@ -39,21 +42,41 @@ export default function MaterialsPage() {
   const [deletingId, setDeletingId] = useState("");
   const [error, setError] = useState("");
 
+  // Поиск и сортировка списка материалов.
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"createdAt" | "title">("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   const load = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (search.trim()) {
+      params.set("search", search.trim());
+    }
+    params.set("sortBy", sortBy);
+    params.set("sortOrder", sortOrder);
+
     try {
-      const data = await api<{ materials: Material[] }>("/api/materials");
+      const data = await api<{ materials: Material[] }>(
+        `/api/materials?${params.toString()}`
+      );
       setMaterials(data.materials);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setListLoading(false);
     }
-  }, [t]);
+  }, [search, sortBy, sortOrder, t]);
 
   useEffect(() => {
-    if (user) {
-      void load();
+    if (!user) {
+      return;
     }
+
+    const timer = setTimeout(() => {
+      void load();
+    }, SEARCH_DELAY_MS);
+
+    return () => clearTimeout(timer);
   }, [user, load]);
 
   /** Новый материал сразу ставим первым в список. */
@@ -118,6 +141,61 @@ export default function MaterialsPage() {
           <h2 className="card__title">{t("materials.create")}</h2>
         </div>
         <MaterialForm onCreated={handleCreated} />
+      </section>
+
+      <section className="card">
+        <div className="grid grid--3">
+          <div className="field">
+            <label className="field__label" htmlFor="materials-search">
+              {t("common.search")}
+            </label>
+            <input
+              id="materials-search"
+              className="input"
+              placeholder={t("materials.search.placeholder")}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="materials-sort-by">
+              {t("materials.sort")}
+            </label>
+            <select
+              id="materials-sort-by"
+              className="select"
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value === "title" ? "title" : "createdAt")
+              }
+            >
+              <option value="createdAt">{t("materials.sort.createdAt")}</option>
+              <option value="title">{t("materials.sort.title")}</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="materials-sort-order">
+              {t("materials.sort.desc")} / {t("materials.sort.asc")}
+            </label>
+            <select
+              id="materials-sort-order"
+              className="select"
+              value={sortOrder}
+              onChange={(event) =>
+                setSortOrder(event.target.value === "asc" ? "asc" : "desc")
+              }
+            >
+              <option value="desc">{t("materials.sort.desc")}</option>
+              <option value="asc">{t("materials.sort.asc")}</option>
+            </select>
+          </div>
+        </div>
+
+        <p className="small muted" style={{ marginTop: 10 }}>
+          {t("materials.count", { count: materials.length })}
+        </p>
       </section>
 
       {listLoading && <p className="muted">{t("common.loading")}</p>}

@@ -22,3 +22,10 @@ export const createUrlMaterialSchema = z.object({
 
 export type CreateMaterialInput = z.infer<typeof createMaterialSchema>;
 export type CreateUrlMaterialInput = z.infer<typeof createUrlMaterialSchema>;
+
+/** Параметры списка материалов: поиск по названию и сортировка. */
+export const listMaterialsQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  sortBy: z.enum(["createdAt", "title"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+});

@@ -9,12 +9,14 @@ import type { NextRequest } from "next/server";
 import {
   createMaterialSchema,
   createUrlMaterialSchema,
+  listMaterialsQuerySchema,
 } from "@/application/validation/material";
 import { createMaterial } from "@/application/use-cases/materials/create-material";
 import { listMaterials } from "@/application/use-cases/materials/list-materials";
 import { materialRepository } from "@/infrastructure/persistence/prisma-material-repository";
 import { extractFileText } from "@/infrastructure/external/text-extraction";
 import { fetchUrlContent } from "@/infrastructure/external/url-extraction";
+import { saveMaterialFile } from "@/infrastructure/storage/file-storage";
 import { config } from "@/config";
 import { getCurrentUser } from "@/app/api/_lib/auth";
 import {
@@ -46,14 +48,20 @@ function checkFileSignature(buffer: Buffer, extension: string): boolean {
   return true;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return unauthorized();
     }
 
-    const materials = await listMaterials(user.id, {
+    const rawQuery = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const parsed = listMaterialsQuerySchema.safeParse(rawQuery);
+    if (!parsed.success) {
+      return badRequest(parsed.error.issues.map((issue) => issue.message).join("; "));
+    }
+
+    const materials = await listMaterials(user.id, parsed.data, {
       materials: materialRepository,
     });
     return ok({ materials });
@@ -114,6 +122,13 @@ export async function POST(request: NextRequest) {
         },
         { materials: materialRepository }
       );
+
+      // Сохраняем оригинал, чтобы материал можно было открыть в исходном виде.
+      try {
+        await saveMaterialFile(material.id, extension, buffer);
+      } catch (error) {
+        console.error("Не удалось сохранить оригинал файла:", error);
+      }
 
       return created({ material });
     }

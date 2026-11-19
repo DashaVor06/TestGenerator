@@ -720,6 +720,13 @@ p {
   background: var(--danger-soft);
 }
 
+/* Вариант, который не выбирали и который не является правильным. */
+.option--muted {
+  opacity: 0.55;
+  border-style: dashed;
+  background: transparent;
+}
+
 .option__marker {
   width: 22px;
   height: 22px;
@@ -916,6 +923,135 @@ p {
   word-break: break-word;
   font-size: 14.5px;
   line-height: 1.65;
+}
+
+.modal__panel--wide {
+  width: min(1040px, 100%);
+}
+
+.modal__body--document {
+  white-space: normal;
+  padding: 0;
+}
+
+.modal__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.modal__toolbar:empty {
+  display: none;
+}
+
+/* --- Просмотр документа --------------------------------------------------- */
+
+.doc-frame {
+  display: block;
+  width: 100%;
+  height: min(68vh, 640px);
+  border: 0;
+  background: var(--bg-soft);
+}
+
+.doc-html {
+  padding: 20px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.doc-html h1,
+.doc-html h2,
+.doc-html h3,
+.doc-html h4,
+.doc-html h5 {
+  margin: 18px 0 8px;
+}
+
+.doc-html p {
+  margin: 0 0 10px;
+}
+
+.doc-html ul,
+.doc-html ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.doc-html li {
+  margin-bottom: 4px;
+}
+
+.doc-html code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.doc-html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.doc-html table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+.doc-html th,
+.doc-html td {
+  border: 1px solid var(--border);
+  padding: 6px 9px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.doc-text {
+  margin: 0;
+  padding: 20px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font);
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+
+.doc-slides {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.doc-slide {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 14px 16px;
+}
+
+.doc-slide__number {
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.doc-source {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-muted);
+  word-break: break-all;
 }
 
 /* --- Уведомления ---------------------------------------------------------- */

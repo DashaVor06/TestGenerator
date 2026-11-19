@@ -49,9 +49,15 @@ export interface CreateMaterialInput {
   status?: ProcessingStatus;
 }
 
+export interface ListMaterialsParams {
+  search?: string;
+  sortBy?: "createdAt" | "title";
+  sortOrder?: "asc" | "desc";
+}
+
 export interface MaterialRepository {
   findById(id: string): Promise<Material | null>;
-  listByOwner(ownerId: string): Promise<Material[]>;
+  listByOwner(ownerId: string, params?: ListMaterialsParams): Promise<Material[]>;
   create(input: CreateMaterialInput): Promise<Material>;
   updateStatus(id: string, status: ProcessingStatus): Promise<Material>;
   delete(id: string): Promise<void>;

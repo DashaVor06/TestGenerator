@@ -43,3 +43,6 @@ pnpm-debug.log*
 /.tmp
 /.pnpm-store
 /prisma/schema.old.prisma
+
+# оригиналы загруженных материалов
+/uploads

@@ -1,11 +1,28 @@
 "use client";
 
-// Просмотр полного текста материала в модальном окне.
+// Просмотр материала в модальном окне.
+// Формат документа определяет способ показа: PDF — встроенный просмотрщик
+// браузера, DOCX — HTML с сохранением оформления, PPTX — по слайдам,
+// MD и статьи — с разметкой, обычный текст — как есть.
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useApp } from "@/components/providers";
+import { renderMarkdown } from "@/lib/markdown";
 import type { CreatedMaterial } from "./material-form";
+
+/** Варианты содержимого, которые возвращает сервер. */
+type Preview =
+  | { kind: "pdf"; fileName: string | null }
+  | { kind: "html"; html: string }
+  | { kind: "slides"; slides: string[] }
+  | { kind: "markdown"; text: string; sourceUrl: string | null }
+  | { kind: "text"; text: string };
+
+interface PreviewResponse {
+  preview: Preview;
+  hasFile: boolean;
+}
 
 interface MaterialPreviewProps {
   /** Какой материал показывать; null — окно закрыто. */
@@ -24,13 +41,16 @@ export function MaterialPreview({ materialId, onClose }: MaterialPreviewProps) {
   const { t, language } = useApp();
 
   const [material, setMaterial] = useState<CreatedMaterial | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [hasFile, setHasFile] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Загружаем материал при открытии окна.
+  // Загружаем материал и его представление при открытии окна.
   useEffect(() => {
     if (!materialId) {
       setMaterial(null);
+      setPreview(null);
       return;
     }
 
@@ -38,11 +58,17 @@ export function MaterialPreview({ materialId, onClose }: MaterialPreviewProps) {
     setLoading(true);
     setError("");
 
-    api<{ material: CreatedMaterial }>(`/api/materials/${materialId}`)
-      .then((data) => {
-        if (alive) {
-          setMaterial(data.material);
+    Promise.all([
+      api<{ material: CreatedMaterial }>(`/api/materials/${materialId}`),
+      api<PreviewResponse>(`/api/materials/${materialId}/preview`),
+    ])
+      .then(([materialData, previewData]) => {
+        if (!alive) {
+          return;
         }
+        setMaterial(materialData.material);
+        setPreview(previewData.preview);
+        setHasFile(previewData.hasFile);
       })
       .catch((err: unknown) => {
         if (alive) {
@@ -86,11 +112,13 @@ export function MaterialPreview({ materialId, onClose }: MaterialPreviewProps) {
       )
     : "";
 
+  const fileUrl = `/api/materials/${materialId}/file`;
+
   return (
     <div className="modal" role="dialog" aria-modal="true">
       <div className="modal__backdrop" onClick={onClose} />
 
-      <div className="modal__panel">
+      <div className="modal__panel modal__panel--wide">
         <div className="modal__header">
           <div>
             <h2 className="modal__title">
@@ -112,18 +140,75 @@ export function MaterialPreview({ materialId, onClose }: MaterialPreviewProps) {
           </button>
         </div>
 
-        <div className="modal__body">
-          {loading && <p className="muted">{t("common.loading")}</p>}
-          {error && <div className="alert alert--error">{error}</div>}
+        {hasFile && (
+          <div className="modal__toolbar">
+            <a className="btn btn--sm" href={fileUrl} download>
+              {t("materials.download")}
+            </a>
+          </div>
+        )}
 
-          {material?.sourceUrl && (
-            <p className="small muted">{material.sourceUrl}</p>
+        <div className="modal__body modal__body--document">
+          {loading && (
+            <p className="muted" style={{ padding: 20 }}>
+              {t("common.loading")}
+            </p>
           )}
 
-          {material?.content && <div>{material.content}</div>}
+          {error && (
+            <div className="alert alert--error" style={{ margin: 20 }}>
+              {error}
+            </div>
+          )}
 
-          {material && !material.content && (
-            <p className="muted">{t("common.empty")}</p>
+          {!loading && !error && preview?.kind === "pdf" && (
+            <iframe className="doc-frame" src={fileUrl} title={material?.title ?? "PDF"} />
+          )}
+
+          {!loading && !error && preview?.kind === "html" && (
+            <div
+              className="doc-html"
+              dangerouslySetInnerHTML={{ __html: preview.html }}
+            />
+          )}
+
+          {!loading && !error && preview?.kind === "slides" && (
+            <div className="doc-slides">
+              {preview.slides.map((text, index) => (
+                <div className="doc-slide" key={index}>
+                  <div className="doc-slide__number">
+                    {t("materials.slide", { number: index + 1 })}
+                  </div>
+                  <div>{text || "—"}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loading && !error && preview?.kind === "markdown" && (
+            <>
+              <div
+                className="doc-html"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(preview.text) }}
+              />
+              {preview.sourceUrl && (
+                <div className="doc-source">
+                  <a href={preview.sourceUrl} target="_blank" rel="noreferrer">
+                    {preview.sourceUrl}
+                  </a>
+                </div>
+              )}
+            </>
+          )}
+
+          {!loading && !error && preview?.kind === "text" && (
+            <pre className="doc-text">{preview.text}</pre>
+          )}
+
+          {!loading && !error && !preview && (
+            <p className="muted" style={{ padding: 20 }}>
+              {t("common.empty")}
+            </p>
           )}
         </div>
       </div>

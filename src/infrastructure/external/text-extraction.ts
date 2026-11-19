@@ -38,10 +38,10 @@ function decodeXmlEntities(value: string): string {
 }
 
 /**
- * Извлекает текст презентации PowerPoint.
- * Слайды читаются по порядку номеров, каждый слайд отделяется пустой строкой.
+ * Возвращает текст каждого слайда отдельно, по порядку номеров.
+ * Пустой слайд даёт пустую строку — так сохраняется нумерация.
  */
-export async function extractPptxText(buffer: Buffer): Promise<string> {
+export async function extractPptxSlides(buffer: Buffer): Promise<string[]> {
   const archive = await JSZip.loadAsync(buffer);
 
   const slideNames = Object.keys(archive.files)
@@ -56,13 +56,23 @@ export async function extractPptxText(buffer: Buffer): Promise<string> {
 
   for (const slide of slideNames) {
     const xml = await archive.files[slide.name].async("string");
-    const text = extractTextFromSlideXml(xml);
-    if (text.length > 0) {
-      slides.push(`Слайд ${slide.number}. ${text}`);
-    }
+    slides.push(extractTextFromSlideXml(xml));
   }
 
-  return slides.join("\n\n");
+  return slides;
+}
+
+/**
+ * Извлекает текст презентации PowerPoint одной строкой.
+ * Слайды читаются по порядку номеров, каждый слайд отделяется пустой строкой.
+ */
+export async function extractPptxText(buffer: Buffer): Promise<string> {
+  const slides = await extractPptxSlides(buffer);
+
+  return slides
+    .map((text, index) => (text.length > 0 ? `Слайд ${index + 1}. ${text}` : ""))
+    .filter((text) => text.length > 0)
+    .join("\n\n");
 }
 
 /** Читает простой текст (TXT, MD) в кодировке UTF-8. */
