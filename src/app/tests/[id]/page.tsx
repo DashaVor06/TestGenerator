@@ -227,6 +227,7 @@ export default function TestPage() {
   function handleAddQuestion() {
     setEditingId(null);
     setEditing(emptyDraft());
+    setFormKey((value) => value + 1);
     setError("");
     setNotice("");
   }
@@ -235,6 +236,7 @@ export default function TestPage() {
   function handleEditQuestion(question: Question) {
     setEditingId(question.id);
     setEditing(draftFromQuestion(question));
+    setFormKey((value) => value + 1);
     setError("");
     setNotice("");
   }
@@ -424,7 +426,7 @@ export default function TestPage() {
 
         {editing && (
           <QuestionEditor
-            key={editingId ?? "new"}
+            key={formKey}
             initial={editing}
             saving={savingQuestion}
             isEditing={editingId !== null}
