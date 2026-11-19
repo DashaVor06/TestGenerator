@@ -1,27 +1,14 @@
 // Реализация порта MaterialRepository на Prisma (инфраструктура).
 
-import type { Material as PrismaMaterial } from "@/generated/prisma";
 import { prisma } from "./prisma";
+import { mapMaterial } from "./mappers";
 import type { CreateMaterialInput, MaterialRepository } from "@/application/ports";
 import type { Material, ProcessingStatus } from "@/domain/entities";
 
 export class PrismaMaterialRepository implements MaterialRepository {
-  private map(m: PrismaMaterial): Material {
-    return {
-      id: m.id,
-      ownerId: m.ownerId,
-      title: m.title,
-      content: m.content,
-      fileUrl: m.fileUrl,
-      fileType: m.fileType,
-      status: m.status,
-      createdAt: m.createdAt,
-    };
-  }
-
   async findById(id: string): Promise<Material | null> {
     const material = await prisma.material.findUnique({ where: { id } });
-    return material ? this.map(material) : null;
+    return material ? mapMaterial(material) : null;
   }
 
   async listByOwner(ownerId: string): Promise<Material[]> {
@@ -29,7 +16,7 @@ export class PrismaMaterialRepository implements MaterialRepository {
       where: { ownerId },
       orderBy: { createdAt: "desc" },
     });
-    return materials.map((m) => this.map(m));
+    return materials.map(mapMaterial);
   }
 
   async create(input: CreateMaterialInput): Promise<Material> {
@@ -40,9 +27,12 @@ export class PrismaMaterialRepository implements MaterialRepository {
         content: input.content ?? null,
         fileUrl: input.fileUrl ?? null,
         fileType: input.fileType ?? null,
+        source: input.source ?? "TEXT",
+        sourceUrl: input.sourceUrl ?? null,
+        status: input.status ?? "READY",
       },
     });
-    return this.map(material);
+    return mapMaterial(material);
   }
 
   async updateStatus(id: string, status: ProcessingStatus): Promise<Material> {
@@ -50,7 +40,7 @@ export class PrismaMaterialRepository implements MaterialRepository {
       where: { id },
       data: { status },
     });
-    return this.map(material);
+    return mapMaterial(material);
   }
 
   async delete(id: string): Promise<void> {

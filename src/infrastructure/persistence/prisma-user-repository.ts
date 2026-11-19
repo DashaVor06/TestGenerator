@@ -1,30 +1,19 @@
 // Реализация порта UserRepository на Prisma (инфраструктура).
 
-import type { User as PrismaUser } from "@/generated/prisma";
 import { prisma } from "./prisma";
+import { mapUser } from "./mappers";
 import type { CreateUserInput, UserRepository } from "@/application/ports";
-import type { User } from "@/domain/entities";
+import type { TestLanguage, User } from "@/domain/entities";
 
 export class PrismaUserRepository implements UserRepository {
-  private map(user: PrismaUser): User {
-    return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      passwordHash: user.passwordHash,
-      role: user.role,
-      createdAt: user.createdAt,
-    };
-  }
-
   async findByEmail(email: string): Promise<User | null> {
     const user = await prisma.user.findUnique({ where: { email } });
-    return user ? this.map(user) : null;
+    return user ? mapUser(user) : null;
   }
 
   async findById(id: string): Promise<User | null> {
     const user = await prisma.user.findUnique({ where: { id } });
-    return user ? this.map(user) : null;
+    return user ? mapUser(user) : null;
   }
 
   async create(input: CreateUserInput): Promise<User> {
@@ -35,7 +24,15 @@ export class PrismaUserRepository implements UserRepository {
         passwordHash: input.passwordHash,
       },
     });
-    return this.map(user);
+    return mapUser(user);
+  }
+
+  async updateLanguage(id: string, language: TestLanguage): Promise<User> {
+    const user = await prisma.user.update({
+      where: { id },
+      data: { language },
+    });
+    return mapUser(user);
   }
 }
 

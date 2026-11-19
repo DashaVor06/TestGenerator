@@ -1,7 +1,8 @@
 // Реализация порта TestRepository на Prisma (инфраструктура).
 
-import type { Prisma, Test as PrismaTest } from "@/generated/prisma";
+import { Prisma } from "@/generated/prisma";
 import { prisma } from "./prisma";
+import { mapTest } from "./mappers";
 import type {
   CreateTestInput,
   ListTestsParams,
@@ -11,43 +12,58 @@ import type {
 import type { Test } from "@/domain/entities";
 
 export class PrismaTestRepository implements TestRepository {
-  private map(t: PrismaTest): Test {
-    return {
-      id: t.id,
-      ownerId: t.ownerId,
-      title: t.title,
-      category: t.category,
-      description: t.description,
-      status: t.status,
-      createdAt: t.createdAt,
-    };
-  }
-
-  async findById(id: string): Promise<Test | null> {
-    const test = await prisma.test.findUnique({ where: { id } });
-    return test ? this.map(test) : null;
-  }
-
-  async list(params: ListTestsParams): Promise<Test[]> {
+  /** Собирает условие WHERE по параметрам поиска и фильтрации. */
+  private buildWhere(params: ListTestsParams): Prisma.TestWhereInput {
     const where: Prisma.TestWhereInput = {};
 
     if (params.ownerId) {
       where.ownerId = params.ownerId;
     }
+    if (params.visibility) {
+      where.visibility = params.visibility;
+    }
     if (params.category) {
       where.category = params.category;
     }
     if (params.search) {
-      where.title = { contains: params.search, mode: "insensitive" };
+      // Поиск по названию и описанию без учёта регистра.
+      where.OR = [
+        { title: { contains: params.search, mode: "insensitive" } },
+        { description: { contains: params.search, mode: "insensitive" } },
+      ];
     }
 
+    return where;
+  }
+
+  async findById(id: string): Promise<Test | null> {
+    const test = await prisma.test.findUnique({ where: { id } });
+    return test ? mapTest(test) : null;
+  }
+
+  async findByShareToken(token: string): Promise<Test | null> {
+    const test = await prisma.test.findUnique({ where: { shareToken: token } });
+    return test ? mapTest(test) : null;
+  }
+
+  async list(params: ListTestsParams): Promise<Test[]> {
     const orderBy: Prisma.TestOrderByWithRelationInput =
       params.sortBy === "title"
         ? { title: params.sortOrder ?? "asc" }
         : { createdAt: params.sortOrder ?? "desc" };
 
-    const tests = await prisma.test.findMany({ where, orderBy });
-    return tests.map((t) => this.map(t));
+    const tests = await prisma.test.findMany({
+      where: this.buildWhere(params),
+      orderBy,
+      skip: params.skip ?? 0,
+      take: params.take ?? 50,
+    });
+
+    return tests.map(mapTest);
+  }
+
+  async count(params: ListTestsParams): Promise<number> {
+    return prisma.test.count({ where: this.buildWhere(params) });
   }
 
   async create(input: CreateTestInput): Promise<Test> {
@@ -57,22 +73,37 @@ export class PrismaTestRepository implements TestRepository {
         title: input.title,
         category: input.category ?? null,
         description: input.description ?? null,
+        language: input.language ?? "RU",
+        visibility: input.visibility ?? "PRIVATE",
+        materialId: input.materialId ?? null,
       },
     });
-    return this.map(test);
+    return mapTest(test);
   }
 
   async update(id: string, input: UpdateTestInput): Promise<Test> {
-    const test = await prisma.test.update({
-      where: { id },
-      data: {
-        ...(input.title !== undefined ? { title: input.title } : {}),
-        ...(input.category !== undefined ? { category: input.category } : {}),
-        ...(input.description !== undefined ? { description: input.description } : {}),
-        ...(input.status !== undefined ? { status: input.status } : {}),
-      },
-    });
-    return this.map(test);
+    // UncheckedUpdateInput позволяет менять скалярный materialId напрямую.
+    const data: Prisma.TestUncheckedUpdateInput = {
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.description !== undefined ? { description: input.description } : {}),
+      ...(input.language !== undefined ? { language: input.language } : {}),
+      ...(input.visibility !== undefined ? { visibility: input.visibility } : {}),
+      ...(input.shareToken !== undefined ? { shareToken: input.shareToken } : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(input.materialId !== undefined ? { materialId: input.materialId } : {}),
+      ...(input.settings !== undefined
+        ? {
+            settings:
+              input.settings === null
+                ? Prisma.DbNull
+                : (input.settings as unknown as Prisma.InputJsonValue),
+          }
+        : {}),
+    };
+
+    const test = await prisma.test.update({ where: { id }, data });
+    return mapTest(test);
   }
 
   async delete(id: string): Promise<void> {
