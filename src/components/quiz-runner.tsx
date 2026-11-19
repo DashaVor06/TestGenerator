@@ -397,6 +397,22 @@ function ReviewRow({ item }: { item: ReviewItem }) {
 
   const textQuestion = item.type === "SHORT_ANSWER" || item.type === "OPEN";
 
+  /** Тексты вариантов, которые выбрал пользователь. */
+  function selectedText(): string {
+    return item.options
+      .filter((option) => option.selected)
+      .map((option) => option.text)
+      .join(", ");
+  }
+
+  /** Тексты правильных вариантов. */
+  function correctText(): string {
+    return item.options
+      .filter((option) => option.isCorrect)
+      .map((option) => option.text)
+      .join(", ");
+  }
+
   return (
     <div className={rowClass}>
       <div className="review__head">
@@ -415,6 +431,20 @@ function ReviewRow({ item }: { item: ReviewItem }) {
             </div>
           ))}
         </div>
+      )}
+
+      {!textQuestion && item.options.length > 0 && (
+        <>
+          <div className="review__answer">
+            <span className="muted small">{t("review.yourAnswer")}:</span>
+            <span>{selectedText() || t("review.noAnswer")}</span>
+          </div>
+
+          <div className="review__answer">
+            <span className="muted small">{t("review.correctAnswer")}:</span>
+            <span>{correctText() || "—"}</span>
+          </div>
+        </>
       )}
 
       {textQuestion && (
