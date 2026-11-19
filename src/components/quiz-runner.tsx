@@ -313,18 +313,32 @@ export function ResultView({
   backHref,
   backLabel,
 }: ResultViewProps) {
-  const { t } = useApp();
+  const { t, language } = useApp();
   const info = result.result;
   const isGuest = info.userId === null;
   const seconds =
     info.durationMs === null ? null : Math.round(info.durationMs / 1000);
+
+  // Подробная статистика по вопросам.
+  const totalQuestions = result.items.length;
+  const correctCount = result.items.filter((item) => item.isCorrect).length;
+  const manualCount = result.items.filter((item) => !item.autoGraded).length;
+  const wrongCount = result.items.filter(
+    (item) => item.autoGraded && !item.isCorrect
+  ).length;
+
+  const completedAt = new Date(info.completedAt).toLocaleString(
+    language === "RU" ? "ru-RU" : "en-US"
+  );
 
   return (
     <div>
       <div className="page-header">
         <div>
           <h1 className="page-title">{t("quiz.result.title")}</h1>
-          <p className="page-subtitle">{result.test.title}</p>
+          <p className="page-subtitle">
+            {result.test.title} · {completedAt}
+          </p>
         </div>
         <span className={isGuest ? "badge badge--warning" : "badge badge--success"}>
           {isGuest ? t("quiz.result.guest") : t("quiz.result.saved")}
@@ -350,6 +364,25 @@ export function ResultView({
               {seconds === null ? "—" : `${seconds} ${t("common.seconds")}`}
             </div>
             <div className="stat__label">{t("quiz.result.timeLabel")}</div>
+          </div>
+        </div>
+
+        <div className="stats">
+          <div className="stat">
+            <div className="stat__value">{totalQuestions}</div>
+            <div className="stat__label">{t("quiz.result.total")}</div>
+          </div>
+          <div className="stat">
+            <div className="stat__value">{correctCount}</div>
+            <div className="stat__label">{t("quiz.result.correct")}</div>
+          </div>
+          <div className="stat">
+            <div className="stat__value">{wrongCount}</div>
+            <div className="stat__label">{t("quiz.result.wrong")}</div>
+          </div>
+          <div className="stat">
+            <div className="stat__value">{manualCount}</div>
+            <div className="stat__label">{t("quiz.result.manual")}</div>
           </div>
         </div>
 
