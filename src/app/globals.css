@@ -885,6 +885,128 @@ p {
   background: var(--surface);
 }
 
+/* --- Строка поиска и фильтров --------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.toolbar__search {
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+
+.toolbar__select {
+  width: 190px;
+  flex: 0 0 auto;
+}
+
+.toolbar__direction {
+  width: 160px;
+  flex: 0 0 auto;
+}
+
+.toolbar__count {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Выпадающий список с поиском (категории). */
+.combobox {
+  position: relative;
+  width: 220px;
+  flex: 0 0 auto;
+}
+
+.combobox__input {
+  padding-right: 32px;
+}
+
+.combobox__toggle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.combobox__toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.combobox__list {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.combobox__item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.combobox__item:hover {
+  background: var(--surface-2);
+}
+
+.combobox__item--active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.combobox__empty {
+  padding: 8px 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .toolbar__search,
+  .combobox,
+  .toolbar__select,
+  .toolbar__direction {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .toolbar__count {
+    margin-left: 0;
+  }
+}
+
 /* --- Модальное окно ------------------------------------------------------- */
 
 .modal {

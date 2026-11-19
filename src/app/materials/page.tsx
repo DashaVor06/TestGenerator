@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useApp } from "@/components/providers";
 import { MaterialForm, type CreatedMaterial } from "@/components/material-form";
 import { MaterialPreview } from "@/components/material-preview";
+import { ListToolbar } from "@/components/list-toolbar";
 
 interface Material extends CreatedMaterial {
   status: string;
@@ -143,60 +144,20 @@ export default function MaterialsPage() {
         <MaterialForm onCreated={handleCreated} />
       </section>
 
-      <section className="card">
-        <div className="grid grid--3">
-          <div className="field">
-            <label className="field__label" htmlFor="materials-search">
-              {t("common.search")}
-            </label>
-            <input
-              id="materials-search"
-              className="input"
-              placeholder={t("materials.search.placeholder")}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label className="field__label" htmlFor="materials-sort-by">
-              {t("materials.sort")}
-            </label>
-            <select
-              id="materials-sort-by"
-              className="select"
-              value={sortBy}
-              onChange={(event) =>
-                setSortBy(event.target.value === "title" ? "title" : "createdAt")
-              }
-            >
-              <option value="createdAt">{t("materials.sort.createdAt")}</option>
-              <option value="title">{t("materials.sort.title")}</option>
-            </select>
-          </div>
-
-          <div className="field">
-            <label className="field__label" htmlFor="materials-sort-order">
-              {t("materials.sort.desc")} / {t("materials.sort.asc")}
-            </label>
-            <select
-              id="materials-sort-order"
-              className="select"
-              value={sortOrder}
-              onChange={(event) =>
-                setSortOrder(event.target.value === "asc" ? "asc" : "desc")
-              }
-            >
-              <option value="desc">{t("materials.sort.desc")}</option>
-              <option value="asc">{t("materials.sort.asc")}</option>
-            </select>
-          </div>
-        </div>
-
-        <p className="small muted" style={{ marginTop: 10 }}>
-          {t("materials.count", { count: materials.length })}
-        </p>
-      </section>
+      <ListToolbar
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder={t("materials.search.placeholder")}
+        sortOptions={[
+          { value: "createdAt", label: t("materials.sort.createdAt") },
+          { value: "title", label: t("materials.sort.title") },
+        ]}
+        sortBy={sortBy}
+        onSortBy={(value) => setSortBy(value === "title" ? "title" : "createdAt")}
+        sortOrder={sortOrder}
+        onSortOrder={setSortOrder}
+        resultLabel={t("common.found", { count: materials.length })}
+      />
 
       {listLoading && <p className="muted">{t("common.loading")}</p>}
 

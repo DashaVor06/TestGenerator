@@ -9,7 +9,7 @@ import type {
   TestRepository,
   UpdateTestInput,
 } from "@/application/ports";
-import type { Test } from "@/domain/entities";
+import type { Test, Visibility } from "@/domain/entities";
 
 export class PrismaTestRepository implements TestRepository {
   /** Собирает условие WHERE по параметрам поиска и фильтрации. */
@@ -64,6 +64,32 @@ export class PrismaTestRepository implements TestRepository {
 
   async count(params: ListTestsParams): Promise<number> {
     return prisma.test.count({ where: this.buildWhere(params) });
+  }
+
+  /** Уникальные категории тестов — используются в фильтре. */
+  async listCategories(params: {
+    ownerId?: string;
+    visibility?: Visibility;
+  }): Promise<string[]> {
+    const where: Prisma.TestWhereInput = { category: { not: null } };
+
+    if (params.ownerId) {
+      where.ownerId = params.ownerId;
+    }
+    if (params.visibility) {
+      where.visibility = params.visibility;
+    }
+
+    const rows = await prisma.test.findMany({
+      where,
+      select: { category: true },
+      distinct: ["category"],
+      orderBy: { category: "asc" },
+    });
+
+    return rows
+      .map((row) => row.category)
+      .filter((category): category is string => Boolean(category));
   }
 
   async create(input: CreateTestInput): Promise<Test> {

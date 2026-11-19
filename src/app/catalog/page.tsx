@@ -7,7 +7,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useApp } from "@/components/providers";
-import type { Language, TranslationKey } from "@/i18n/dictionary";
+import { ListToolbar, type ToolbarSortOption } from "@/components/list-toolbar";
+import type { Language } from "@/i18n/dictionary";
 
 interface PublicTest {
   id: string;
@@ -33,24 +34,11 @@ const SEARCH_DELAY_MS = 300;
 /** Сколько тестов загружаем за раз. */
 const PAGE_LIMIT = 24;
 
-const SORT_BY_KEYS: Record<SortBy, TranslationKey> = {
-  createdAt: "catalog.sort.createdAt",
-  title: "catalog.sort.title",
-};
-
-/** Дата создания в коротком виде. */
-function formatDate(value: string, language: Language): string {
-  return new Date(value).toLocaleDateString(language === "RU" ? "ru-RU" : "en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export default function CatalogPage() {
   const { t, language } = useApp();
 
   const [tests, setTests] = useState<PublicTest[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -59,6 +47,11 @@ export default function CatalogPage() {
   const [category, setCategory] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  const sortOptions: ToolbarSortOption[] = [
+    { value: "createdAt", label: t("catalog.sort.createdAt") },
+    { value: "title", label: t("catalog.sort.title") },
+  ];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,6 +82,13 @@ export default function CatalogPage() {
     }
   }, [search, category, sortBy, sortOrder, t]);
 
+  // Категории публичных тестов для выпадающего фильтра.
+  useEffect(() => {
+    api<{ categories: string[] }>("/api/tests/categories?scope=public")
+      .then((data) => setCategories(data.categories))
+      .catch(() => setCategories([]));
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       void load();
@@ -96,6 +96,15 @@ export default function CatalogPage() {
 
     return () => clearTimeout(timer);
   }, [load]);
+
+  /** Дата создания в коротком виде. */
+  function formatDate(value: string): string {
+    return new Date(value).toLocaleDateString(language === "RU" ? "ru-RU" : "en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
 
   return (
     <div className="stack">
@@ -106,70 +115,20 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      <section className="card">
-        <div className="grid grid--3">
-          <div className="field">
-            <label className="field__label" htmlFor="catalog-search">
-              {t("common.search")}
-            </label>
-            <input
-              id="catalog-search"
-              className="input"
-              placeholder={t("catalog.search.placeholder")}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label className="field__label" htmlFor="catalog-category">
-              {t("catalog.field.category")}
-            </label>
-            <input
-              id="catalog-category"
-              className="input"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              maxLength={100}
-            />
-          </div>
-
-          <div className="field">
-            <label className="field__label" htmlFor="catalog-sort-by">
-              {t("catalog.sort")}
-            </label>
-            <div className="row">
-              <select
-                id="catalog-sort-by"
-                className="select"
-                value={sortBy}
-                onChange={(event) =>
-                  setSortBy(event.target.value === "title" ? "title" : "createdAt")
-                }
-              >
-                <option value="createdAt">{t(SORT_BY_KEYS.createdAt)}</option>
-                <option value="title">{t(SORT_BY_KEYS.title)}</option>
-              </select>
-
-              <select
-                className="select"
-                aria-label={t("catalog.sort")}
-                value={sortOrder}
-                onChange={(event) =>
-                  setSortOrder(event.target.value === "asc" ? "asc" : "desc")
-                }
-              >
-                <option value="desc">{t("catalog.sort.desc")}</option>
-                <option value="asc">{t("catalog.sort.asc")}</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <p className="small muted" style={{ marginTop: 10 }}>
-          {t("catalog.found", { count: total })}
-        </p>
-      </section>
+      <ListToolbar
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder={t("catalog.search.placeholder")}
+        categories={categories}
+        category={category}
+        onCategory={setCategory}
+        sortOptions={sortOptions}
+        sortBy={sortBy}
+        onSortBy={(value) => setSortBy(value === "title" ? "title" : "createdAt")}
+        sortOrder={sortOrder}
+        onSortOrder={setSortOrder}
+        resultLabel={t("common.found", { count: total })}
+      />
 
       {error && <div className="alert alert--error">{error}</div>}
 
@@ -193,7 +152,7 @@ export default function CatalogPage() {
               {test.description && <p className="muted">{test.description}</p>}
 
               <div className="row row--between" style={{ marginTop: 12 }}>
-                <span className="small muted">{formatDate(test.createdAt, language)}</span>
+                <span className="small muted">{formatDate(test.createdAt)}</span>
 
                 {test.shareToken && (
                   <Link className="btn btn--primary btn--sm" href={`/t/${test.shareToken}`}>

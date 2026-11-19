@@ -102,6 +102,7 @@ export function makeTestRepo(seed: Test[] = []) {
     ),
     list: vi.fn(async () => tests),
     count: vi.fn(async () => tests.length),
+    listCategories: vi.fn(async () => []),
     create: vi.fn(async (input) => {
       const test = makeTest({
         id: `t-${tests.length + 1}`,

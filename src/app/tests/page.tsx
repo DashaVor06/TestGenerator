@@ -1,12 +1,13 @@
 "use client";
 
-// «Мои тесты»: список собственных тестов с поиском и сортировкой.
+// «Мои тесты»: список собственных тестов с единым блоком поиска и сортировки.
 // У каждого теста две кнопки — пройти и редактировать.
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useApp } from "@/components/providers";
+import { ListToolbar, type ToolbarSortOption } from "@/components/list-toolbar";
 import type { Language, TranslationKey } from "@/i18n/dictionary";
 
 type TestStatus = "PENDING" | "PROCESSING" | "READY" | "ERROR";
@@ -46,19 +47,11 @@ const STATUS_BADGES: Record<TestStatus, string> = {
   ERROR: "badge badge--danger",
 };
 
-/** Дата создания в коротком виде. */
-function formatDate(value: string, language: Language): string {
-  return new Date(value).toLocaleDateString(language === "RU" ? "ru-RU" : "en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export default function MyTestsPage() {
   const { user, loading, t, language } = useApp();
 
   const [tests, setTests] = useState<TestItem[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [loadingTests, setLoadingTests] = useState(true);
   const [error, setError] = useState("");
@@ -67,6 +60,11 @@ export default function MyTestsPage() {
   const [category, setCategory] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  const sortOptions: ToolbarSortOption[] = [
+    { value: "createdAt", label: t("catalog.sort.createdAt") },
+    { value: "title", label: t("catalog.sort.title") },
+  ];
 
   const load = useCallback(async () => {
     setLoadingTests(true);
@@ -95,6 +93,17 @@ export default function MyTestsPage() {
     }
   }, [search, category, sortBy, sortOrder, t]);
 
+  // Существующие категории нужны выпадающему фильтру.
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    api<{ categories: string[] }>("/api/tests/categories")
+      .then((data) => setCategories(data.categories))
+      .catch(() => setCategories([]));
+  }, [user]);
+
   useEffect(() => {
     if (!user) {
       return;
@@ -106,6 +115,15 @@ export default function MyTestsPage() {
 
     return () => clearTimeout(timer);
   }, [user, load]);
+
+  /** Дата создания в коротком виде. */
+  function formatDate(value: string): string {
+    return new Date(value).toLocaleDateString(language === "RU" ? "ru-RU" : "en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
 
   if (loading) {
     return <p className="muted">{t("common.loading")}</p>;
@@ -140,70 +158,20 @@ export default function MyTestsPage() {
         </Link>
       </header>
 
-      <section className="card">
-        <div className="grid grid--3">
-          <div className="field">
-            <label className="field__label" htmlFor="my-search">
-              {t("common.search")}
-            </label>
-            <input
-              id="my-search"
-              className="input"
-              placeholder={t("catalog.search.placeholder")}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label className="field__label" htmlFor="my-category">
-              {t("catalog.field.category")}
-            </label>
-            <input
-              id="my-category"
-              className="input"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              maxLength={100}
-            />
-          </div>
-
-          <div className="field">
-            <label className="field__label" htmlFor="my-sort">
-              {t("catalog.sort")}
-            </label>
-            <div className="row">
-              <select
-                id="my-sort"
-                className="select"
-                value={sortBy}
-                onChange={(event) =>
-                  setSortBy(event.target.value === "title" ? "title" : "createdAt")
-                }
-              >
-                <option value="createdAt">{t("catalog.sort.createdAt")}</option>
-                <option value="title">{t("catalog.sort.title")}</option>
-              </select>
-
-              <select
-                className="select"
-                aria-label={t("catalog.sort")}
-                value={sortOrder}
-                onChange={(event) =>
-                  setSortOrder(event.target.value === "asc" ? "asc" : "desc")
-                }
-              >
-                <option value="desc">{t("catalog.sort.desc")}</option>
-                <option value="asc">{t("catalog.sort.asc")}</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <p className="small muted" style={{ marginTop: 10 }}>
-          {t("catalog.found", { count: total })}
-        </p>
-      </section>
+      <ListToolbar
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder={t("catalog.search.placeholder")}
+        categories={categories}
+        category={category}
+        onCategory={setCategory}
+        sortOptions={sortOptions}
+        sortBy={sortBy}
+        onSortBy={(value) => setSortBy(value === "title" ? "title" : "createdAt")}
+        sortOrder={sortOrder}
+        onSortOrder={setSortOrder}
+        resultLabel={t("common.found", { count: total })}
+      />
 
       {error && <div className="alert alert--error">{error}</div>}
 
@@ -232,7 +200,7 @@ export default function MyTestsPage() {
                     <span className={STATUS_BADGES[test.status]}>
                       {t(STATUS_KEYS[test.status])}
                     </span>
-                    <span>{formatDate(test.createdAt, language)}</span>
+                    <span>{formatDate(test.createdAt)}</span>
                   </div>
                 </div>
 

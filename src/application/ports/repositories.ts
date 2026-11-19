@@ -103,6 +103,8 @@ export interface TestRepository {
   findByShareToken(token: string): Promise<Test | null>;
   list(params: ListTestsParams): Promise<Test[]>;
   count(params: ListTestsParams): Promise<number>;
+  /** Список существующих категорий (для выпадающего фильтра). */
+  listCategories(params: { ownerId?: string; visibility?: Visibility }): Promise<string[]>;
   create(input: CreateTestInput): Promise<Test>;
   update(id: string, input: UpdateTestInput): Promise<Test>;
   delete(id: string): Promise<void>;

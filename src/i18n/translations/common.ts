@@ -33,6 +33,8 @@ export const ru = {
   "common.empty": "Пока пусто",
   "common.add": "Добавить",
   "common.all": "Все",
+  "common.allCategories": "Все категории",
+  "common.found": "Найдено: {count}",
   "common.optional": "необязательно",
   "common.required": "обязательно",
   "common.language": "Язык",
@@ -97,8 +99,12 @@ export const ru = {
 
   "results.title": "Мои результаты",
   "results.subtitle": "История прохождений и разбор ошибок",
+  "results.search.placeholder": "Поиск по названию теста…",
+  "results.sort.date": "По дате",
+  "results.sort.percent": "По результату",
   "results.empty": "Вы ещё не проходили тесты",
   "results.review": "Разбор",
+  "results.details": "Подробнее",
   "results.guest": "Гость",
 
   "errors.unauthorized": "Нужно войти в систему",
@@ -141,6 +147,8 @@ export const en: Record<keyof typeof ru, string> = {
   "common.empty": "Nothing here yet",
   "common.add": "Add",
   "common.all": "All",
+  "common.allCategories": "All categories",
+  "common.found": "Found: {count}",
   "common.optional": "optional",
   "common.required": "required",
   "common.language": "Language",
@@ -205,8 +213,12 @@ export const en: Record<keyof typeof ru, string> = {
 
   "results.title": "My results",
   "results.subtitle": "Your attempts and mistake review",
+  "results.search.placeholder": "Search by test title…",
+  "results.sort.date": "By date",
+  "results.sort.percent": "By score",
   "results.empty": "You have not taken any tests yet",
   "results.review": "Review",
+  "results.details": "Details",
   "results.guest": "Guest",
 
   "errors.unauthorized": "Please sign in",
