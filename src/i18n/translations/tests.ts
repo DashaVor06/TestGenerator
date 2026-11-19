@@ -102,6 +102,13 @@ export const ru = {
   "tests.new.material.none": "Без материала — добавлю позже",
   "tests.new.submit": "Создать тест",
   "tests.new.creating": "Создание…",
+
+  // Страница «Мои тесты».
+  "tests.my.title": "Мои тесты",
+  "tests.my.subtitle": "Здесь вы создаёте тесты и проходите их",
+  "tests.my.empty": "У вас пока нет тестов. Создайте первый — это займёт минуту.",
+  "tests.card.take": "Пройти",
+  "tests.card.edit": "Редактировать",
 } as const;
 
 export const en: Record<keyof typeof ru, string> = {
@@ -206,4 +213,11 @@ export const en: Record<keyof typeof ru, string> = {
   "tests.new.material.none": "No material — I will add it later",
   "tests.new.submit": "Create test",
   "tests.new.creating": "Creating…",
+
+  // Страница «Мои тесты».
+  "tests.my.title": "My tests",
+  "tests.my.subtitle": "Create tests here and take them",
+  "tests.my.empty": "You have no tests yet. Create your first one — it takes a minute.",
+  "tests.card.take": "Take",
+  "tests.card.edit": "Edit",
 };

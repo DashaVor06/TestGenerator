@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // Страница управления тестом: загрузка данных, действия пользователя
 // и связка карточек (настройки, генерация, вопросы).
@@ -140,7 +140,7 @@ export default function TestPage() {
     setError("");
     try {
       await api(`/api/tests/${testId}`, { method: "DELETE" });
-      router.push("/catalog");
+      router.push("/tests");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
       setDeletingTest(false);
@@ -326,7 +326,7 @@ export default function TestPage() {
       <div className="stack">
         <p className="muted">{error || t("common.loading")}</p>
         <div className="row">
-          <Link className="btn btn--sm" href="/catalog">{t("common.back")}</Link>
+          <Link className="btn btn--sm" href="/tests">{t("common.back")}</Link>
         </div>
       </div>
     );

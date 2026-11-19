@@ -5,6 +5,7 @@ export const ru = {
   "app.tagline": "Автоматические тесты по вашим материалам",
 
   "nav.catalog": "Каталог",
+  "nav.myTests": "Мои тесты",
   "nav.materials": "Материалы",
   "nav.results": "Результаты",
   "nav.profile": "Профиль",
@@ -71,8 +72,8 @@ export const ru = {
   "profile.notifications": "Последние уведомления",
   "profile.notifications.empty": "Уведомлений пока нет",
 
-  "catalog.title": "Мои тесты",
-  "catalog.subtitle": "Создавайте тесты, редактируйте вопросы и делитесь ссылкой",
+  "catalog.title": "Каталог тестов",
+  "catalog.subtitle": "Публичные тесты, которыми поделились пользователи",
   "catalog.new.title": "Новый тест",
   "catalog.field.title": "Название теста",
   "catalog.field.category": "Категория",
@@ -111,7 +112,8 @@ export const en: Record<keyof typeof ru, string> = {
   "app.name": "Test Generator",
   "app.tagline": "Automatic tests from your study materials",
 
-  "nav.catalog": "Tests",
+  "nav.catalog": "Catalog",
+  "nav.myTests": "My tests",
   "nav.materials": "Materials",
   "nav.results": "Results",
   "nav.profile": "Profile",
@@ -178,8 +180,8 @@ export const en: Record<keyof typeof ru, string> = {
   "profile.notifications": "Recent notifications",
   "profile.notifications.empty": "No notifications yet",
 
-  "catalog.title": "My tests",
-  "catalog.subtitle": "Create tests, edit questions and share a link",
+  "catalog.title": "Test catalog",
+  "catalog.subtitle": "Public tests shared by other users",
   "catalog.new.title": "New test",
   "catalog.field.title": "Test title",
   "catalog.field.category": "Category",

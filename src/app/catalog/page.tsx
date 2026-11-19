@@ -1,7 +1,7 @@
 "use client";
 
-// Каталог: свои тесты (поиск, сортировка) и публичные тесты других авторов.
-// Новый тест создаётся на отдельной странице /tests/new.
+// Каталог публичных тестов. Доступен всем, в том числе без входа.
+// Здесь только прохождение — создание и редактирование живут в «Моих тестах».
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,52 +9,38 @@ import { api } from "@/lib/api";
 import { useApp } from "@/components/providers";
 import type { Language, TranslationKey } from "@/i18n/dictionary";
 
-type TestStatus = "PENDING" | "PROCESSING" | "READY" | "ERROR";
-type SortBy = "createdAt" | "title";
-type SortOrder = "asc" | "desc";
-
-interface TestItem {
+interface PublicTest {
   id: string;
   title: string;
   category: string | null;
   description: string | null;
   language: Language;
-  status: TestStatus;
   shareToken: string | null;
   createdAt: string;
 }
 
-interface TestsResponse {
-  tests: TestItem[];
+interface PublicTestsResponse {
+  tests: PublicTest[];
   total: number;
-  page: number;
-  limit: number;
 }
 
-// Подписи статусов и цвет значка для каждого статуса.
-const STATUS_KEYS: Record<TestStatus, TranslationKey> = {
-  PENDING: "catalog.status.PENDING",
-  PROCESSING: "catalog.status.PROCESSING",
-  READY: "catalog.status.READY",
-  ERROR: "catalog.status.ERROR",
-};
+type SortBy = "createdAt" | "title";
+type SortOrder = "asc" | "desc";
 
-const STATUS_BADGES: Record<TestStatus, string> = {
-  PENDING: "badge badge--warning",
-  PROCESSING: "badge badge--primary",
-  READY: "badge badge--success",
-  ERROR: "badge badge--danger",
-};
-
-// Сколько тестов показывать в блоке публичных.
-const PUBLIC_LIMIT = 6;
-// Пауза перед запросом, чтобы не искать на каждую введённую букву.
+/** Пауза перед запросом, чтобы не искать на каждую введённую букву. */
 const SEARCH_DELAY_MS = 300;
 
-/** Дата создания теста в коротком виде. */
+/** Сколько тестов загружаем за раз. */
+const PAGE_LIMIT = 24;
+
+const SORT_BY_KEYS: Record<SortBy, TranslationKey> = {
+  createdAt: "catalog.sort.createdAt",
+  title: "catalog.sort.title",
+};
+
+/** Дата создания в коротком виде. */
 function formatDate(value: string, language: Language): string {
-  const locale = language === "RU" ? "ru-RU" : "en-US";
-  return new Date(value).toLocaleDateString(locale, {
+  return new Date(value).toLocaleDateString(language === "RU" ? "ru-RU" : "en-US", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -62,91 +48,54 @@ function formatDate(value: string, language: Language): string {
 }
 
 export default function CatalogPage() {
-  const { user, loading, t, language } = useApp();
+  const { t, language } = useApp();
 
-  const [tests, setTests] = useState<TestItem[]>([]);
+  const [tests, setTests] = useState<PublicTest[]>([]);
   const [total, setTotal] = useState(0);
-  const [loadingTests, setLoadingTests] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Фильтры списка своих тестов.
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
-  // Публичный каталог доступен и гостям.
-  const [publicTests, setPublicTests] = useState<TestItem[]>([]);
-  const [publicLoaded, setPublicLoaded] = useState(false);
-
-  /** Загружает свои тесты с учётом поиска, категории и сортировки. */
-  const loadTests = useCallback(async () => {
-    setLoadingTests(true);
+  const load = useCallback(async () => {
+    setLoading(true);
     setError("");
-    try {
-      const params = new URLSearchParams();
-      params.set("sortBy", sortBy);
-      params.set("sortOrder", sortOrder);
-      params.set("limit", "20");
-      if (search.trim()) {
-        params.set("search", search.trim());
-      }
-      if (category.trim()) {
-        params.set("category", category.trim());
-      }
 
-      const data = await api<TestsResponse>(`/api/tests?${params.toString()}`);
+    const params = new URLSearchParams({
+      sortBy,
+      sortOrder,
+      limit: String(PAGE_LIMIT),
+    });
+    if (search.trim()) {
+      params.set("search", search.trim());
+    }
+    if (category.trim()) {
+      params.set("category", category.trim());
+    }
+
+    try {
+      const data = await api<PublicTestsResponse>(
+        `/api/tests/public?${params.toString()}`
+      );
       setTests(data.tests);
       setTotal(data.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
     } finally {
-      setLoadingTests(false);
+      setLoading(false);
     }
   }, [search, category, sortBy, sortOrder, t]);
 
-  // Список перезагружается с небольшой задержкой после смены фильтров.
   useEffect(() => {
-    if (!user) {
-      return;
-    }
-
     const timer = setTimeout(() => {
-      void loadTests();
+      void load();
     }, SEARCH_DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [user, loadTests]);
-
-  // Публичные тесты грузим сразу — они видны даже без входа.
-  useEffect(() => {
-    let alive = true;
-
-    api<TestsResponse>(`/api/tests/public?limit=${PUBLIC_LIMIT}`)
-      .then((data) => {
-        if (alive) {
-          setPublicTests(data.tests);
-        }
-      })
-      .catch(() => {
-        if (alive) {
-          setPublicTests([]);
-        }
-      })
-      .finally(() => {
-        if (alive) {
-          setPublicLoaded(true);
-        }
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (loading) {
-    return <p className="muted">{t("common.loading")}</p>;
-  }
+  }, [load]);
 
   return (
     <div className="stack">
@@ -155,187 +104,107 @@ export default function CatalogPage() {
           <h1 className="page-title">{t("catalog.title")}</h1>
           <p className="page-subtitle">{t("catalog.subtitle")}</p>
         </div>
-
-        {user && (
-          <Link className="btn btn--primary btn--sm" href="/tests/new">
-            {t("catalog.new.button")}
-          </Link>
-        )}
       </header>
 
-      {!user ? (
-        <div className="card stack">
-          <h2 className="card__title">{t("auth.required")}</h2>
-          <p className="muted">{t("auth.login.subtitle")}</p>
-          <div className="row">
-            <Link className="btn btn--primary btn--sm" href="/login">
-              {t("nav.login")}
-            </Link>
-            <Link className="btn btn--sm" href="/register">
-              {t("nav.register")}
-            </Link>
+      <section className="card">
+        <div className="grid grid--3">
+          <div className="field">
+            <label className="field__label" htmlFor="catalog-search">
+              {t("common.search")}
+            </label>
+            <input
+              id="catalog-search"
+              className="input"
+              placeholder={t("catalog.search.placeholder")}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="catalog-category">
+              {t("catalog.field.category")}
+            </label>
+            <input
+              id="catalog-category"
+              className="input"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              maxLength={100}
+            />
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="catalog-sort-by">
+              {t("catalog.sort")}
+            </label>
+            <div className="row">
+              <select
+                id="catalog-sort-by"
+                className="select"
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value === "title" ? "title" : "createdAt")
+                }
+              >
+                <option value="createdAt">{t(SORT_BY_KEYS.createdAt)}</option>
+                <option value="title">{t(SORT_BY_KEYS.title)}</option>
+              </select>
+
+              <select
+                className="select"
+                aria-label={t("catalog.sort")}
+                value={sortOrder}
+                onChange={(event) =>
+                  setSortOrder(event.target.value === "asc" ? "asc" : "desc")
+                }
+              >
+                <option value="desc">{t("catalog.sort.desc")}</option>
+                <option value="asc">{t("catalog.sort.asc")}</option>
+              </select>
+            </div>
           </div>
         </div>
-      ) : (
-        <>
-          <div className="card">
-            <div className="grid grid--3">
-              <div className="field">
-                <label className="field__label" htmlFor="catalog-search">
-                  {t("common.search")}
-                </label>
-                <input
-                  id="catalog-search"
-                  className="input"
-                  placeholder={t("catalog.search.placeholder")}
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-              </div>
 
-              <div className="field">
-                <label className="field__label" htmlFor="catalog-category">
-                  {t("catalog.field.category")}
-                </label>
-                <input
-                  id="catalog-category"
-                  className="input"
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  maxLength={100}
-                />
-              </div>
+        <p className="small muted" style={{ marginTop: 10 }}>
+          {t("catalog.found", { count: total })}
+        </p>
+      </section>
 
-              <div className="field">
-                <label className="field__label" htmlFor="catalog-sort-by">
-                  {t("catalog.sort")}
-                </label>
-                <div className="row">
-                  <select
-                    id="catalog-sort-by"
-                    className="select"
-                    value={sortBy}
-                    onChange={(event) =>
-                      setSortBy(event.target.value === "title" ? "title" : "createdAt")
-                    }
-                  >
-                    <option value="createdAt">{t("catalog.sort.createdAt")}</option>
-                    <option value="title">{t("catalog.sort.title")}</option>
-                  </select>
-                  <select
-                    className="select"
-                    aria-label={t("catalog.sort")}
-                    value={sortOrder}
-                    onChange={(event) =>
-                      setSortOrder(event.target.value === "asc" ? "asc" : "desc")
-                    }
-                  >
-                    <option value="desc">{t("catalog.sort.desc")}</option>
-                    <option value="asc">{t("catalog.sort.asc")}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
+      {error && <div className="alert alert--error">{error}</div>}
 
-          {error && <div className="alert alert--error">{error}</div>}
+      {loading && tests.length === 0 && <p className="muted">{t("common.loading")}</p>}
 
-          {loadingTests && tests.length === 0 ? (
-            <p className="muted">{t("common.loading")}</p>
-          ) : tests.length === 0 ? (
-            <div className="empty">
-              <p className="empty__title">{t("catalog.empty")}</p>
-            </div>
-          ) : (
-            <>
-              <p className="small muted">{t("catalog.found", { count: total })}</p>
-
-              <div className="grid grid--2">
-                {tests.map((item) => (
-                  <div key={item.id}>
-                    <article className="card stack">
-                      <div className="row row--between">
-                        <h3 className="card__title">{item.title}</h3>
-                        <span className={STATUS_BADGES[item.status]}>
-                          {t(STATUS_KEYS[item.status])}
-                        </span>
-                      </div>
-
-                      <div className="row">
-                        {item.category && (
-                          <span className="badge badge--primary">{item.category}</span>
-                        )}
-                        <span className="small muted">
-                          {formatDate(item.createdAt, language)}
-                        </span>
-                      </div>
-
-                      {item.description && <p className="muted">{item.description}</p>}
-
-                      <div className="row">
-                        <Link className="btn btn--primary btn--sm" href={`/tests/${item.id}`}>
-                          {t("catalog.open")}
-                        </Link>
-                      </div>
-                    </article>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </>
+      {!loading && tests.length === 0 && (
+        <div className="empty">
+          <p className="empty__title">{t("catalog.public.empty")}</p>
+        </div>
       )}
 
-      <section className="stack">
-        <div>
-          <h2 className="card__title">{t("catalog.public.title")}</h2>
-          <p className="muted small">{t("catalog.public.subtitle")}</p>
-        </div>
-
-        {!publicLoaded && <p className="muted">{t("common.loading")}</p>}
-
-        {publicLoaded && publicTests.length === 0 && (
-          <div className="empty">
-            <p className="empty__title">{t("catalog.public.empty")}</p>
-          </div>
-        )}
-
-        {publicTests.length > 0 && (
-          <div className="grid grid--3">
-            {publicTests.map((item) => (
-              <div key={item.id}>
-                <article className="card stack">
-                  <h3 className="card__title">{item.title}</h3>
-
-                  <div className="row">
-                    {item.category && (
-                      <span className="badge badge--primary">{item.category}</span>
-                    )}
-                    <span className="small muted">
-                      {formatDate(item.createdAt, language)}
-                    </span>
-                  </div>
-
-                  {item.description && (
-                    <p className="muted small">{item.description}</p>
-                  )}
-
-                  {item.shareToken && (
-                    <div className="row">
-                      <Link
-                        className="btn btn--primary btn--sm"
-                        href={`/t/${item.shareToken}`}
-                      >
-                        {t("catalog.public.take")}
-                      </Link>
-                    </div>
-                  )}
-                </article>
+      {tests.length > 0 && (
+        <div className="grid grid--2">
+          {tests.map((test) => (
+            <article className="card" key={test.id}>
+              <div className="card__header">
+                <h3 className="card__title">{test.title}</h3>
+                {test.category && <span className="badge">{test.category}</span>}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+
+              {test.description && <p className="muted">{test.description}</p>}
+
+              <div className="row row--between" style={{ marginTop: 12 }}>
+                <span className="small muted">{formatDate(test.createdAt, language)}</span>
+
+                {test.shareToken && (
+                  <Link className="btn btn--primary btn--sm" href={`/t/${test.shareToken}`}>
+                    {t("catalog.public.take")}
+                  </Link>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // Страница входа: почта и пароль, после успеха — переход в каталог тестов.
 
@@ -38,7 +38,7 @@ export default function LoginPage() {
 
       // Обновляем пользователя в общем состоянии, чтобы шапка сразу ожила.
       await refresh();
-      router.push("/catalog");
+      router.push("/tests");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
     } finally {

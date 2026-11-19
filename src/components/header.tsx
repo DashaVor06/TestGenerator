@@ -41,6 +41,9 @@ export function Header() {
           </Link>
           {user && (
             <>
+              <Link href="/tests" className={linkClass("/tests")}>
+                {t("nav.myTests")}
+              </Link>
               <Link href="/materials" className={linkClass("/materials")}>
                 {t("nav.materials")}
               </Link>

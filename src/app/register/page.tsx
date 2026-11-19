@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // Страница регистрации: имя, почта и пароль, после успеха — каталог тестов.
 
@@ -39,7 +39,7 @@ export default function RegisterPage() {
 
       // После регистрации сервер сразу выдаёт cookie входа.
       await refresh();
-      router.push("/catalog");
+      router.push("/tests");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
     } finally {

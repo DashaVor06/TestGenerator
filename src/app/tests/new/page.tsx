@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // Отдельная страница создания теста: основные поля и выбор материала.
 // Материал можно добавить здесь же, не уходя на страницу «Материалы».
@@ -91,7 +91,7 @@ export default function NewTestPage() {
           <h1 className="page-title">{t("tests.new.title")}</h1>
           <p className="page-subtitle">{t("tests.new.subtitle")}</p>
         </div>
-        <Link className="btn btn--ghost btn--sm" href="/catalog">
+        <Link className="btn btn--ghost btn--sm" href="/tests">
           {t("common.back")}
         </Link>
       </div>
