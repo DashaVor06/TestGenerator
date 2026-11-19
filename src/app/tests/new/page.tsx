@@ -46,8 +46,7 @@ export default function NewTestPage() {
     setAddingMaterial(false);
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function handleSubmit() {
     setError("");
     setCreating(true);
 
@@ -99,7 +98,7 @@ export default function NewTestPage() {
 
       {error && <div className="alert alert--error">{error}</div>}
 
-      <form className="stack" onSubmit={handleSubmit}>
+      <div className="stack">
         <section className="card">
           <div className="card__header">
             <h2 className="card__title">{t("tests.new.basic")}</h2>
@@ -209,11 +208,16 @@ export default function NewTestPage() {
         </section>
 
         <div className="row">
-          <button className="btn btn--primary" type="submit" disabled={creating}>
+          <button
+            className="btn btn--primary"
+            type="button"
+            onClick={handleSubmit}
+            disabled={creating}
+          >
             {creating ? t("tests.new.creating") : t("tests.new.submit")}
           </button>
         </div>
-      </form>
+      </div>
 
       <MaterialPreview materialId={previewId} onClose={() => setPreviewId(null)} />
     </div>
