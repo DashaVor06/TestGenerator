@@ -1,4 +1,4 @@
-import type { Role } from "./enums";
+import type { Role, TestLanguage } from "./enums";
 
 /** Учётная запись пользователя. */
 export interface User {
@@ -7,5 +7,7 @@ export interface User {
   email: string;
   passwordHash: string;
   role: Role;
+  /** Язык интерфейса, выбранный пользователем. */
+  language: TestLanguage;
   createdAt: Date;
 }

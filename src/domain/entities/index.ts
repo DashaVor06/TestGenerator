@@ -5,4 +5,6 @@ export * from "./test";
 export * from "./question";
 export * from "./answer-option";
 export * from "./test-result";
+export * from "./test-answer";
+export * from "./generation";
 export * from "./notification";

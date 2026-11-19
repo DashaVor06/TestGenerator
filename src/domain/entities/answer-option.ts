@@ -4,4 +4,6 @@ export interface AnswerOption {
   questionId: string;
   text: string;
   isCorrect: boolean;
+  /** Порядок вывода варианта на экране. */
+  order: number;
 }
