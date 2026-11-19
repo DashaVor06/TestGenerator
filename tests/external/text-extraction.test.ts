@@ -10,9 +10,9 @@ describe("extractPdfText", () => {
   it("читает текст из PDF, переданного как Buffer", async () => {
     // unpdf принимает только Uint8Array и отклоняет Buffer,
     // поэтому этот тест ловит регрессию с типом входных данных.
-    const text = await extractPdfText(buildSamplePdf("Проверка PDF"));
+    const text = await extractPdfText(buildSamplePdf("PDF check"));
 
-    expect(text).toContain("Проверка PDF");
+    expect(text).toContain("PDF check");
   });
 
   it("извлекает текст через общий диспетчер по расширению", async () => {
