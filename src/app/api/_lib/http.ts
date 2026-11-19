@@ -26,6 +26,17 @@ export function unauthorized(message = "Не авторизован"): NextRespo
   return NextResponse.json({ error: message }, { status: 401 });
 }
 
+/** Превышен лимит запросов: сообщаем, когда можно повторить. */
+export function tooManyRequests(message: string, retryAfterSeconds: number): NextResponse {
+  return NextResponse.json(
+    { error: message, retryAfterSeconds },
+    {
+      status: 429,
+      headers: { "Retry-After": String(retryAfterSeconds) },
+    }
+  );
+}
+
 export function handleError(error: unknown): NextResponse {
   if (error instanceof UnauthorizedError) {
     return NextResponse.json({ error: error.message }, { status: 401 });

@@ -1,4 +1,4 @@
-// /api/tests/[id]/submit — сдача теста и подсчёт результата.
+// /api/tests/[id]/submit — сдача теста авторизованным пользователем.
 
 import type { NextRequest } from "next/server";
 import { submitAnswersSchema } from "@/application/validation/submit";
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const body = await request.json().catch(() => null);
     const parsed = submitAnswersSchema.safeParse(body);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => i.message).join("; "));
+      return badRequest(parsed.error.issues.map((issue) => issue.message).join("; "));
     }
 
     const result = await submitAnswers(params.id, user.id, parsed.data, {

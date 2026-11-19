@@ -1,7 +1,6 @@
-// Use case: список результатов пользователя.
+// Use case: список результатов пользователя вместе с названиями тестов.
 
-import type { TestResultRepository } from "@/application/ports";
-import type { TestResult } from "@/domain/entities";
+import type { ResultWithTest, TestResultRepository } from "@/application/ports";
 
 export interface ListResultsDeps {
   results: TestResultRepository;
@@ -10,6 +9,6 @@ export interface ListResultsDeps {
 export async function listResults(
   userId: string,
   deps: ListResultsDeps
-): Promise<TestResult[]> {
-  return deps.results.listByUser(userId);
+): Promise<ResultWithTest[]> {
+  return deps.results.listByUserWithTest(userId);
 }

@@ -1,7 +1,10 @@
-// /api/tests — список тестов пользователя (GET) и создание (POST).
+// /api/tests — список тестов пользователя (GET) и создание теста (POST).
 
 import type { NextRequest } from "next/server";
-import { createTestSchema, listTestsQuerySchema } from "@/application/validation/test";
+import {
+  createTestSchema,
+  listTestsQuerySchema,
+} from "@/application/validation/test";
 import { createTest } from "@/application/use-cases/tests/create-test";
 import { listTests } from "@/application/use-cases/tests/list-tests";
 import { testRepository } from "@/infrastructure/persistence/prisma-test-repository";
@@ -18,11 +21,11 @@ export async function GET(request: NextRequest) {
     const rawQuery = Object.fromEntries(request.nextUrl.searchParams.entries());
     const parsed = listTestsQuerySchema.safeParse(rawQuery);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => i.message).join("; "));
+      return badRequest(parsed.error.issues.map((issue) => issue.message).join("; "));
     }
 
-    const tests = await listTests(user.id, parsed.data, { tests: testRepository });
-    return ok({ tests });
+    const result = await listTests(user.id, parsed.data, { tests: testRepository });
+    return ok(result);
   } catch (error) {
     return handleError(error);
   }
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
     const parsed = createTestSchema.safeParse(body);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => i.message).join("; "));
+      return badRequest(parsed.error.issues.map((issue) => issue.message).join("; "));
     }
 
     const test = await createTest(user.id, parsed.data, { tests: testRepository });

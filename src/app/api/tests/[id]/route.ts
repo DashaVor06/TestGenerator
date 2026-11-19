@@ -1,4 +1,5 @@
 // /api/tests/[id] — получение (GET), обновление (PATCH), удаление (DELETE).
+// Все операции доступны только автору теста.
 
 import type { NextRequest } from "next/server";
 import { updateTestSchema } from "@/application/validation/test";
@@ -41,7 +42,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const body = await request.json().catch(() => null);
     const parsed = updateTestSchema.safeParse(body);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => i.message).join("; "));
+      return badRequest(parsed.error.issues.map((issue) => issue.message).join("; "));
     }
 
     const test = await updateTest(params.id, user.id, parsed.data, {

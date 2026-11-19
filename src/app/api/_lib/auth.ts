@@ -21,6 +21,7 @@ export interface PublicUser {
   username: string;
   email: string;
   role: User["role"];
+  language: User["language"];
   createdAt: Date;
 }
 
@@ -30,6 +31,7 @@ export function toPublicUser(user: User): PublicUser {
     username: user.username,
     email: user.email,
     role: user.role,
+    language: user.language,
     createdAt: user.createdAt,
   };
 }

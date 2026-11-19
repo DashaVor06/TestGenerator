@@ -1,4 +1,8 @@
-// /api/tests/[id]/generate — запуск генерации вопросов (асинхронно).
+// /api/tests/[id]/generate — запуск генерации вопросов.
+//
+// Запрос возвращает ответ сразу (202), а генерация идёт в фоне:
+// статус теста пишется в БД, о завершении сообщает WebSocket.
+// Это не блокирует интерфейс и не упирается в таймаут HTTP.
 
 import type { NextRequest } from "next/server";
 import { generateSchema } from "@/application/validation/generation";
@@ -6,10 +10,19 @@ import { generateTest } from "@/application/use-cases/tests/generate-test";
 import { testRepository } from "@/infrastructure/persistence/prisma-test-repository";
 import { materialRepository } from "@/infrastructure/persistence/prisma-material-repository";
 import { questionRepository } from "@/infrastructure/persistence/prisma-question-repository";
+import { generationRepository } from "@/infrastructure/persistence/prisma-generation-repository";
 import { questionGenerator } from "@/infrastructure/external/question-generator-factory";
-import { socketNotifier } from "@/infrastructure/realtime/socket-notifier";
+import { notificationService } from "@/infrastructure/realtime/notification-service";
+import { checkRateLimit } from "@/infrastructure/security/rate-limiter";
+import { config } from "@/config";
 import { getCurrentUser } from "@/app/api/_lib/auth";
-import { badRequest, handleError, ok, unauthorized } from "@/app/api/_lib/http";
+import {
+  badRequest,
+  handleError,
+  ok,
+  tooManyRequests,
+  unauthorized,
+} from "@/app/api/_lib/http";
 
 interface RouteContext {
   params: { id: string };
@@ -22,32 +35,45 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       return unauthorized();
     }
 
+    // Защита от случайного перерасхода денег на ИИ.
+    const limit = checkRateLimit(
+      `generate:${user.id}`,
+      config.limits.generationsPerHour
+    );
+    if (!limit.allowed) {
+      return tooManyRequests(
+        `Слишком много генераций. Повторите через ${limit.retryAfterSeconds} с`,
+        limit.retryAfterSeconds
+      );
+    }
+
     const body = await request.json().catch(() => null);
     const parsed = generateSchema.safeParse(body);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => i.message).join("; "));
+      return badRequest(parsed.error.issues.map((issue) => issue.message).join("; "));
     }
 
-    // Запуск генерации в фоне (fire-and-forget): статус пишется в БД,
-    // о завершении пользователя уведомляет WebSocket.
+    // Генерация в фоне: ответ пользователю приходит сразу.
     void generateTest(
       params.id,
-      parsed.data.materialId,
       user.id,
       {
-        count: parsed.data.count,
-        types: parsed.data.types,
-        difficulty: parsed.data.difficulty,
+        materialId: parsed.data.materialId,
+        typeCounts: parsed.data.typeCounts,
+        difficulty: parsed.data.difficulty ?? null,
+        thinkingCount: parsed.data.thinkingCount,
+        language: parsed.data.language,
       },
       {
         tests: testRepository,
         materials: materialRepository,
         questions: questionRepository,
         generator: questionGenerator,
-        notifier: socketNotifier,
+        notifier: notificationService,
+        generations: generationRepository,
       }
     ).catch((error) => {
-      console.error("Generation failed:", error);
+      console.error("Ошибка генерации теста:", error);
     });
 
     return ok({ status: "PROCESSING" }, 202);
