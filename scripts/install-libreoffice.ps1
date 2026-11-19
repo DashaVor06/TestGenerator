@@ -1,4 +1,4 @@
-# Установка LibreOffice для просмотра DOCX и PPTX страницами.
+﻿# Установка LibreOffice для просмотра DOCX и PPTX страницами.
 # Запуск: pnpm setup:libreoffice
 # Скрипт также вызывается автоматически после pnpm install (см. scripts/postinstall.mjs).
 
