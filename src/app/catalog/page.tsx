@@ -1,10 +1,10 @@
 "use client";
 
-// Каталог: свои тесты (поиск, сортировка, создание) и публичные тесты других авторов.
+// Каталог: свои тесты (поиск, сортировка) и публичные тесты других авторов.
+// Новый тест создаётся на отдельной странице /tests/new.
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useApp } from "@/components/providers";
 import type { Language, TranslationKey } from "@/i18n/dictionary";
@@ -63,7 +63,6 @@ function formatDate(value: string, language: Language): string {
 
 export default function CatalogPage() {
   const { user, loading, t, language } = useApp();
-  const router = useRouter();
 
   const [tests, setTests] = useState<TestItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -75,13 +74,6 @@ export default function CatalogPage() {
   const [category, setCategory] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-
-  // Форма нового теста.
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [newCategory, setNewCategory] = useState("");
-  const [newLanguage, setNewLanguage] = useState<Language>(language);
-  const [creating, setCreating] = useState(false);
 
   // Публичный каталог доступен и гостям.
   const [publicTests, setPublicTests] = useState<TestItem[]>([]);
@@ -152,28 +144,6 @@ export default function CatalogPage() {
     };
   }, []);
 
-  /** Создаёт тест и сразу открывает страницу управления. */
-  async function handleCreate(event: React.FormEvent) {
-    event.preventDefault();
-    setCreating(true);
-    setError("");
-    try {
-      const data = await api<{ test: TestItem }>("/api/tests", {
-        method: "POST",
-        body: JSON.stringify({
-          title: title.trim(),
-          category: newCategory.trim() || null,
-          description: description.trim() || null,
-          language: newLanguage,
-        }),
-      });
-      router.push(`/tests/${data.test.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
-      setCreating(false);
-    }
-  }
-
   if (loading) {
     return <p className="muted">{t("common.loading")}</p>;
   }
@@ -185,6 +155,12 @@ export default function CatalogPage() {
           <h1 className="page-title">{t("catalog.title")}</h1>
           <p className="page-subtitle">{t("catalog.subtitle")}</p>
         </div>
+
+        {user && (
+          <Link className="btn btn--primary btn--sm" href="/tests/new">
+            {t("catalog.new.button")}
+          </Link>
+        )}
       </header>
 
       {!user ? (
@@ -202,81 +178,6 @@ export default function CatalogPage() {
         </div>
       ) : (
         <>
-          <form className="card" onSubmit={handleCreate}>
-            <div className="card__header">
-              <h2 className="card__title">{t("catalog.new.title")}</h2>
-            </div>
-
-            <div className="stack">
-              <div className="grid grid--2">
-                <div className="field">
-                  <label className="field__label" htmlFor="new-test-title">
-                    {t("catalog.field.title")}
-                  </label>
-                  <input
-                    id="new-test-title"
-                    className="input"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    required
-                    minLength={2}
-                    maxLength={200}
-                  />
-                </div>
-
-                <div className="field">
-                  <label className="field__label" htmlFor="new-test-category">
-                    {t("catalog.field.category")}
-                  </label>
-                  <input
-                    id="new-test-category"
-                    className="input"
-                    value={newCategory}
-                    onChange={(event) => setNewCategory(event.target.value)}
-                    maxLength={100}
-                  />
-                </div>
-              </div>
-
-              <div className="field">
-                <label className="field__label" htmlFor="new-test-description">
-                  {t("catalog.field.description")}
-                </label>
-                <textarea
-                  id="new-test-description"
-                  className="textarea"
-                  rows={3}
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  maxLength={2000}
-                />
-              </div>
-
-              <div className="field">
-                <label className="field__label" htmlFor="new-test-language">
-                  {t("tests.field.language")}
-                </label>
-                <select
-                  id="new-test-language"
-                  className="select"
-                  value={newLanguage}
-                  onChange={(event) =>
-                    setNewLanguage(event.target.value === "EN" ? "EN" : "RU")
-                  }
-                >
-                  <option value="RU">{t("tests.field.language.ru")}</option>
-                  <option value="EN">{t("tests.field.language.en")}</option>
-                </select>
-              </div>
-
-              <div className="row">
-                <button className="btn btn--primary" type="submit" disabled={creating}>
-                  {creating ? t("common.saving") : t("common.create")}
-                </button>
-              </div>
-            </div>
-          </form>
-
           <div className="card">
             <div className="grid grid--3">
               <div className="field">

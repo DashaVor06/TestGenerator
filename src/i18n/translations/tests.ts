@@ -91,6 +91,17 @@ export const ru = {
   // Тексты каталога, которых нет в общем словаре.
   "catalog.sort": "Сортировка",
   "catalog.found": "Найдено тестов: {count}",
+  "catalog.new.button": "Новый тест",
+
+  // Страница создания теста.
+  "tests.new.title": "Новый тест",
+  "tests.new.subtitle": "Заполните основные поля и выберите материал для генерации",
+  "tests.new.basic": "Основное",
+  "tests.new.material": "Материал",
+  "tests.new.material.hint": "Можно выбрать готовый материал или добавить новый прямо здесь",
+  "tests.new.material.none": "Без материала — добавлю позже",
+  "tests.new.submit": "Создать тест",
+  "tests.new.creating": "Создание…",
 } as const;
 
 export const en: Record<keyof typeof ru, string> = {
@@ -184,4 +195,15 @@ export const en: Record<keyof typeof ru, string> = {
   // Тексты каталога, которых нет в общем словаре.
   "catalog.sort": "Sorting",
   "catalog.found": "Tests found: {count}",
+  "catalog.new.button": "New test",
+
+  // Страница создания теста.
+  "tests.new.title": "New test",
+  "tests.new.subtitle": "Fill in the main fields and choose a material for generation",
+  "tests.new.basic": "Basics",
+  "tests.new.material": "Material",
+  "tests.new.material.hint": "Pick an existing material or add a new one right here",
+  "tests.new.material.none": "No material — I will add it later",
+  "tests.new.submit": "Create test",
+  "tests.new.creating": "Creating…",
 };
