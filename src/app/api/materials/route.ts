@@ -36,7 +36,9 @@ const MAX_FILE_SIZE = config.upload.maxSizeMb * 1024 * 1024;
  * а не только по расширению.
  */
 function checkFileSignature(buffer: Buffer, extension: string): boolean {
-  const isPdf = buffer.subarray(0, 4).toString("latin1") === "%PDF";
+  // Смотрим первые килобайты: некоторые программы добавляют BOM или пустые строки.
+  const head = buffer.subarray(0, 1024).toString("latin1");
+  const isPdf = head.includes("%PDF");
   const isZip = buffer[0] === 0x50 && buffer[1] === 0x4b; // "PK" — DOCX и PPTX
 
   if (extension === "pdf") {
@@ -107,8 +109,20 @@ export async function POST(request: NextRequest) {
       let content = "";
       try {
         content = await extractFileText(buffer, extension);
-      } catch {
-        return badRequest("Не удалось извлечь текст из файла");
+      } catch (error) {
+        // Причину пишем в консоль сервера: по ней проще разобраться.
+        console.error(`Не удалось извлечь текст из .${extension}:`, error);
+        return badRequest(
+          extension === "pdf"
+            ? "Не удалось прочитать PDF. Возможно, файл защищён паролем или повреждён"
+            : "Не удалось извлечь текст из файла"
+        );
+      }
+
+      if (content.trim().length === 0) {
+        return badRequest(
+          "В документе нет текстового слоя. Если это скан или фотография, нужен файл с текстом"
+        );
       }
 
       const material = await createMaterial(

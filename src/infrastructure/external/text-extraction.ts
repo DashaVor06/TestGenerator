@@ -6,7 +6,9 @@ import mammoth from "mammoth";
 import JSZip from "jszip";
 
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  const { text } = await extractText(buffer);
+  // unpdf принимает только «чистый» Uint8Array, Buffer он отклоняет,
+  // поэтому передаём копию в виде обычного Uint8Array.
+  const { text } = await extractText(new Uint8Array(buffer));
   return Array.isArray(text) ? text.join("\n\n") : text;
 }
 
