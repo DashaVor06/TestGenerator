@@ -42,18 +42,18 @@ describe("normalizeQuestionData", () => {
     ).toThrow(ValidationError);
   });
 
-  it("для «верно/неверно» оставляет ровно два варианта", () => {
-    const result = normalizeQuestionData({
-      type: "TRUE_FALSE",
-      options: [
-        { text: "Верно", isCorrect: true },
-        { text: "Неверно", isCorrect: false },
-        { text: "Не знаю", isCorrect: false },
-      ],
-      expectedAnswer: null,
-    });
-
-    expect(result.options).toHaveLength(2);
+  it("для «верно/неверно» требует ровно два варианта", () => {
+    expect(() =>
+      normalizeQuestionData({
+        type: "TRUE_FALSE",
+        options: [
+          { text: "Верно", isCorrect: true },
+          { text: "Неверно", isCorrect: false },
+          { text: "Не знаю", isCorrect: false },
+        ],
+        expectedAnswer: null,
+      })
+    ).toThrow(ValidationError);
   });
 
   it("для короткого ответа требует эталон", () => {

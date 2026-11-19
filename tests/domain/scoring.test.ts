@@ -29,8 +29,9 @@ describe("normalizeAnswerText", () => {
     expect(normalizeAnswerText("Ёлка")).toBe("елка");
   });
 
-  it("убирает знаки препинания и нормализует десятичную запятую", () => {
-    expect(normalizeAnswerText("2,5 кг.")).toBe("2.5 кг");
+  it("убирает знаки препинания и одинаково понимает запятую и точку", () => {
+    expect(normalizeAnswerText("2,5 кг.")).toBe("2 5 кг");
+    expect(normalizeAnswerText("2.5 кг")).toBe("2 5 кг");
   });
 });
 

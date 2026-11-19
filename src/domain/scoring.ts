@@ -61,14 +61,14 @@ export function canAutoGrade(question: ScorableQuestion): boolean {
 
 /**
  * Приводит текстовый ответ к сравнимому виду:
- * нижний регистр, «ё» → «е», запятая в числах → точка, без знаков препинания,
- * без лишних пробелов.
+ * нижний регистр, «ё» → «е», знаки препинания заменяются пробелом,
+ * лишние пробелы убираются. Запятая и точка считаются одинаково,
+ * поэтому «2,5» и «2.5» сравниваются как равные.
  */
 export function normalizeAnswerText(value: string): string {
   return value
     .toLowerCase()
     .replace(/ё/g, "е")
-    .replace(/(\d),(\d)/g, "$1.$2")
     .replace(/[.,;:!?"'«»()[\]{}]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
