@@ -24,6 +24,14 @@ function makeRepo(users: User[]): UserRepository {
     async create() {
       throw new Error("не используется в этом тесте");
     },
+    async updateLanguage(id, language) {
+      const user = users.find((u) => u.id === id);
+      if (!user) {
+        throw new Error("Пользователь не найден");
+      }
+      user.language = language;
+      return user;
+    },
   };
 }
 
@@ -33,6 +41,7 @@ const user: User = {
   email: "test@example.com",
   passwordHash: "hashed:secret123",
   role: "USER",
+  language: "RU",
   createdAt: new Date(),
 };
 

@@ -1,96 +1,71 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { submitAnswers } from "@/application/use-cases/tests/submit-answers";
-import type {
-  QuestionRepository,
-  QuestionWithOptions,
-  TestRepository,
-  TestResultRepository,
-} from "@/application/ports";
-import type { Test, TestResult } from "@/domain/entities";
-import { NotFoundError } from "@/domain/errors/domain-error";
+import { ForbiddenError, NotFoundError } from "@/domain/errors/domain-error";
+import {
+  makeQuestionWithOptions,
+  makeResultRepo,
+  makeTest,
+  makeTestRepo,
+} from "../helpers/fakes";
+import type { QuestionWithOptions } from "@/application/ports";
 
+/** Три вопроса: несколько верных, верно/неверно и короткий ответ. */
 const questions: QuestionWithOptions[] = [
-  {
+  makeQuestionWithOptions({
     id: "q1",
-    testId: "t1",
     type: "MULTIPLE_CHOICE",
-    text: "Вопрос 1",
-    difficulty: null,
-    explanation: null,
-    order: 1,
     options: [
-      { id: "o1", questionId: "q1", text: "A", isCorrect: true },
-      { id: "o2", questionId: "q1", text: "B", isCorrect: false },
-      { id: "o3", questionId: "q1", text: "C", isCorrect: true },
+      { id: "o1", questionId: "q1", text: "A", isCorrect: true, order: 0 },
+      { id: "o2", questionId: "q1", text: "B", isCorrect: false, order: 1 },
+      { id: "o3", questionId: "q1", text: "C", isCorrect: true, order: 2 },
     ],
-  },
-  {
+  }),
+  makeQuestionWithOptions({
     id: "q2",
-    testId: "t1",
     type: "TRUE_FALSE",
-    text: "Вопрос 2",
-    difficulty: null,
-    explanation: null,
     order: 2,
     options: [
-      { id: "o4", questionId: "q2", text: "Верно", isCorrect: true },
-      { id: "o5", questionId: "q2", text: "Неверно", isCorrect: false },
+      { id: "o4", questionId: "q2", text: "Верно", isCorrect: true, order: 0 },
+      { id: "o5", questionId: "q2", text: "Неверно", isCorrect: false, order: 1 },
     ],
-  },
+  }),
+  makeQuestionWithOptions({
+    id: "q3",
+    type: "SHORT_ANSWER",
+    order: 3,
+    expectedAnswer: "БД|база данных",
+    options: [],
+  }),
 ];
 
-const test: Test = {
-  id: "t1",
-  ownerId: "user-1",
-  title: "Тест",
-  category: null,
-  description: null,
-  status: "READY",
-  createdAt: new Date("2026-01-01T00:00:00Z"),
-};
+function deps(seedQuestions: QuestionWithOptions[] = questions) {
+  const { repo: tests } = makeTestRepo([makeTest()]);
+  const { repo: results, created } = makeResultRepo();
 
-function makeTestRepo(): TestRepository {
   return {
-    findById: vi.fn(async () => test),
-    list: vi.fn(async () => []),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
+    tests,
+    results,
+    created,
+    questions: {
+      findById: async () => null,
+      listByTest: async () => seedQuestions,
+      listByTestWithOptions: async () => seedQuestions,
+      createMany: async () => {},
+      create: async () => {
+        throw new Error("не используется");
+      },
+      update: async () => {
+        throw new Error("не используется");
+      },
+      delete: async () => {},
+      deleteByTest: async () => {},
+    },
   };
-}
-
-function makeQuestionRepo(): QuestionRepository {
-  return {
-    listByTest: vi.fn(async () => []),
-    listByTestWithOptions: vi.fn(async () => questions),
-    createMany: vi.fn(),
-    deleteByTest: vi.fn(),
-  };
-}
-
-function makeResultRepo() {
-  const created: TestResult[] = [];
-  const repo: TestResultRepository = {
-    create: vi.fn(async (input) => {
-      const result: TestResult = {
-        id: `r-${created.length + 1}`,
-        testId: input.testId,
-        userId: input.userId,
-        score: input.score,
-        percentCorrect: input.percentCorrect,
-        completedAt: new Date(),
-      };
-      created.push(result);
-      return result;
-    }),
-    listByUser: vi.fn(async () => []),
-  };
-  return { repo, created };
 }
 
 describe("submitAnswers", () => {
   it("считает 100% при полностью верных ответах", async () => {
-    const { repo, created } = makeResultRepo();
+    const d = deps();
     const result = await submitAnswers(
       "t1",
       "user-1",
@@ -98,62 +73,90 @@ describe("submitAnswers", () => {
         answers: [
           { questionId: "q1", optionIds: ["o1", "o3"] },
           { questionId: "q2", optionIds: ["o4"] },
+          { questionId: "q3", optionIds: [], text: "база данных" },
         ],
       },
-      { tests: makeTestRepo(), questions: makeQuestionRepo(), results: repo }
+      { tests: d.tests, questions: d.questions, results: d.results }
     );
 
-    expect(result.score).toBe(2);
-    expect(result.percentCorrect).toBe(100);
-    expect(created).toHaveLength(1);
+    expect(result.result.score).toBe(3);
+    expect(result.result.percentCorrect).toBe(100);
+    expect(d.created).toHaveLength(1);
   });
 
-  it("считает 0 при неверных ответах", async () => {
-    const { repo } = makeResultRepo();
+  it("не засчитывает частично выбранные варианты", async () => {
+    const d = deps();
     const result = await submitAnswers(
       "t1",
       "user-1",
       {
         answers: [
-          { questionId: "q1", optionIds: ["o2"] },
-          { questionId: "q2", optionIds: ["o5"] },
+          { questionId: "q1", optionIds: ["o1"] },
+          { questionId: "q2", optionIds: ["o4"] },
+          { questionId: "q3", optionIds: [], text: "бд" },
         ],
       },
-      { tests: makeTestRepo(), questions: makeQuestionRepo(), results: repo }
+      { tests: d.tests, questions: d.questions, results: d.results }
     );
 
-    expect(result.score).toBe(0);
-    expect(result.percentCorrect).toBe(0);
+    expect(result.result.score).toBe(2);
+    expect(Math.round(result.result.percentCorrect)).toBe(67);
   });
 
-  it("считает частичный результат", async () => {
-    const { repo } = makeResultRepo();
+  it("возвращает разбор с правильными ответами и пояснениями", async () => {
+    const d = deps([
+      makeQuestionWithOptions({
+        id: "q1",
+        type: "SINGLE_CHOICE",
+        explanation: "Потому что так написано в материале",
+        sourceQuote: "Цитата из материала",
+        options: [
+          { id: "o1", questionId: "q1", text: "A", isCorrect: true, order: 0 },
+          { id: "o2", questionId: "q1", text: "B", isCorrect: false, order: 1 },
+        ],
+      }),
+    ]);
+
     const result = await submitAnswers(
       "t1",
       "user-1",
-      {
-        answers: [
-          { questionId: "q1", optionIds: ["o1", "o3"] },
-          { questionId: "q2", optionIds: ["o5"] },
-        ],
-      },
-      { tests: makeTestRepo(), questions: makeQuestionRepo(), results: repo }
+      { answers: [{ questionId: "q1", optionIds: ["o2"] }] },
+      { tests: d.tests, questions: d.questions, results: d.results }
     );
 
-    expect(result.score).toBe(1);
-    expect(result.percentCorrect).toBe(50);
+    const item = result.items[0];
+    expect(item.isCorrect).toBe(false);
+    expect(item.correctOptionIds).toEqual(["o1"]);
+    expect(item.explanation).toBe("Потому что так написано в материале");
+    expect(item.sourceQuote).toBe("Цитата из материала");
+    // Правильный вариант помечен, но был выбран другой.
+    expect(item.options.find((option) => option.id === "o1")?.isCorrect).toBe(true);
+    expect(item.options.find((option) => option.id === "o2")?.selected).toBe(true);
   });
 
   it("выбрасывает NotFoundError, если тест не найден", async () => {
-    const repo = makeTestRepo();
-    repo.findById = vi.fn(async () => null);
+    const d = deps();
+    d.tests.findById = async () => null;
 
     await expect(
-      submitAnswers("missing", "user-1", { answers: [] }, {
-        tests: repo,
-        questions: makeQuestionRepo(),
-        results: makeResultRepo().repo,
+      submitAnswers("missing", "user-1", { answers: [{ questionId: "q1", optionIds: [] }] }, {
+        tests: d.tests,
+        questions: d.questions,
+        results: d.results,
       })
     ).rejects.toThrow(NotFoundError);
+  });
+
+  it("не даёт пройти чужой приватный тест", async () => {
+    const d = deps();
+    d.tests.findById = async () => makeTest({ ownerId: "other-user", visibility: "PRIVATE" });
+
+    await expect(
+      submitAnswers("t1", "user-1", { answers: [{ questionId: "q1", optionIds: [] }] }, {
+        tests: d.tests,
+        questions: d.questions,
+        results: d.results,
+      })
+    ).rejects.toThrow(ForbiddenError);
   });
 });

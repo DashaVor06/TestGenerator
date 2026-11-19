@@ -34,9 +34,18 @@ function makeRepo(seed: User[] = []): FakeRepo {
         email: input.email,
         passwordHash: input.passwordHash,
         role: "USER",
+        language: "RU",
         createdAt: new Date(),
       };
       users.push(user);
+      return user;
+    },
+    async updateLanguage(id, language) {
+      const user = users.find((u) => u.id === id);
+      if (!user) {
+        throw new Error("Пользователь не найден");
+      }
+      user.language = language;
       return user;
     },
   };
@@ -63,6 +72,7 @@ describe("registerUser", () => {
       email: "test@example.com",
       passwordHash: "hashed:xxx",
       role: "USER",
+      language: "RU",
       createdAt: new Date(),
     };
     const repo = makeRepo([existing]);
