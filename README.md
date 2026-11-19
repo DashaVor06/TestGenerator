@@ -48,6 +48,15 @@
 LIBREOFFICE_PATH="C:\Program Files\LibreOffice\program\soffice.exe"
 ```
 
+Установить LibreOffice можно одной командой (winget или Chocolatey):
+
+```bash
+pnpm setup:libreoffice
+```
+
+Эта же попытка выполняется автоматически после `pnpm install` на Windows,
+если LibreOffice ещё не установлен. В CI и на Linux шаг пропускается.
+
 PDF-версия создаётся один раз при первом открытии и хранится рядом с оригиналом
 в папке `uploads`, поэтому повторное открытие происходит мгновенно.
 Если LibreOffice не установлен, DOCX показывается как HTML с оформлением,

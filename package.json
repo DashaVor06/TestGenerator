@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "postinstall": "node scripts/postinstall.mjs",
+    "setup:libreoffice": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-libreoffice.ps1",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
